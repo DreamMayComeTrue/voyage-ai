@@ -1,12 +1,12 @@
 import React from 'react'
-import { Home, MessageCircle, Map, Navigation, Briefcase } from 'lucide-react'
+import { Home, MessageCircle, Map, Globe, Briefcase } from 'lucide-react'
 
 const BottomNav = ({ activeScreen, setActiveScreen }) => {
     const tabs = [
         { id: 'home',      icon: Home,          label: 'Home'      },
         { id: 'chat',      icon: MessageCircle, label: 'AI Agent'  },
         { id: 'itinerary', icon: Map,           label: 'Itinerary' },
-        { id: 'map',       icon: Navigation,    label: 'AR Maps'   },
+        { id: 'translate', icon: Globe,         label: 'Translate' },
         { id: 'mytrips',   icon: Briefcase,     label: 'My Trips'  },
     ]
 

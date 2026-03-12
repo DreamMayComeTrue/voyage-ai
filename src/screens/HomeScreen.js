@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-    MessageCircle, Upload, Map, Navigation,
+    MessageCircle, Upload, Map, Globe,
     Plane, Hotel, ChevronRight, Sparkles
 } from 'lucide-react'
 
@@ -37,10 +37,10 @@ const HomeScreen = ({ setActiveScreen, itineraries, trips }) => {
             glow: '#b0d8ff',
         },
         {
-            id: 'map',
-            icon: Navigation,
-            title: 'AR Maps',
-            desc: 'Navigate your trip',
+            id: 'translate',
+            icon: Globe,
+            title: 'Translate',
+            desc: 'Speak & translate instantly',
             color: '#78b8f8',
             bg: 'linear-gradient(135deg, #1a3665 0%, #365685 100%)',
             border: '#365685',
