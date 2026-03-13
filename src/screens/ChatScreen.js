@@ -3,7 +3,7 @@ import {
     Send, Mic, MicOff, ArrowLeft,
     X, Check, Sparkles, User, Trash2
 } from 'lucide-react'
-import { sendMessage, detectLanguage, translateText } from '../services/claudeService'
+import { sendMessage, detectLanguage, translateText, transcribeAudio } from '../services/claudeService'
 import { searchFlights, searchHotels, getWeather } from '../services/flightService'
 import FlightCard from '../components/FlightCard'
 import HotelCard from '../components/HotelCard'
@@ -199,59 +199,81 @@ const ChatScreen = ({
     }, [conversations])
 
     useEffect(() => {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-        if (!SR) { console.warn('Speech Recognition not supported'); return }
-
+        // Use MediaRecorder instead of Web Speech API
+        // Web Speech API fails in Electron (needs Google servers)
+        // MediaRecorder + Claude transcription works everywhere
         navigator.mediaDevices?.getUserMedia({ audio: true })
             .then((stream) => {
-                // Stop the stream immediately - we just needed permission
-                stream.getTracks().forEach(track => track.stop())
-
-                recognitionRef.current = new SR()
-                recognitionRef.current.continuous = false
-                recognitionRef.current.interimResults = true
-                recognitionRef.current.lang = navigator.language || 'en-US'
-                recognitionRef.current.maxAlternatives = 1
-
-                recognitionRef.current.onstart = () => setIsListening(true)
-
-                recognitionRef.current.onresult = (e) => {
-                    const t = Array.from(e.results).map(r => r[0].transcript).join('')
-                    setInput(t)
-                }
-
-                recognitionRef.current.onend = () => setIsListening(false)
-
-                recognitionRef.current.onerror = (e) => {
-                    console.error('Speech error:', e.error)
-                    setIsListening(false)
-                    if (e.error === 'not-allowed') {
-                        alert('Microphone permission denied. Please allow microphone access.')
-                    }
-                }
+                stream.getTracks().forEach(t => t.stop()) // just checking permission
+                console.log('Mic permission granted')
             })
-            .catch(err => console.error('Mic permission error:', err))
+            .catch(err => console.error('Mic permission denied:', err))
     }, [])
 
     // ── Speech ───────────────────────────────────────────────────────────────
-    const toggleListening = () => {
-        if (!recognitionRef.current) {
-            alert('Microphone not available. Please use Chrome or Edge browser.')
+    const toggleListening = async () => {
+        if (isListening) {
+            // Stop recording
+            if (recognitionRef.current && recognitionRef.current.state === 'recording') {
+                recognitionRef.current.stop()
+            }
+            setIsListening(false)
             return
         }
-        if (isListening) {
-            recognitionRef.current.stop()
-            setIsListening(false)
-        } else {
-            try {
-                recognitionRef.current.start()
-            } catch (e) {
-                recognitionRef.current.stop()
-                setTimeout(() => {
-                    try { recognitionRef.current.start() }
-                    catch (e2) { console.error('Restart error:', e2) }
-                }, 300)
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                : MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg'
+                    : 'audio/mp4'
+
+            const recorder = new MediaRecorder(stream, { mimeType })
+            recognitionRef.current = recorder
+            const chunks = []
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data)
             }
+
+            recorder.onstop = async () => {
+                stream.getTracks().forEach(t => t.stop())
+                setIsListening(false)
+
+                if (chunks.length === 0) return
+
+                const audioBlob = new Blob(chunks, { type: mimeType })
+                setIsLoading(true)
+                setInput('🎤 Transcribing...')
+
+                try {
+                    const transcript = await transcribeAudio(audioBlob)
+                    if (transcript) {
+                        setInput(transcript)
+                    } else {
+                        setInput('')
+                        alert('Could not hear anything clearly. Please try again.')
+                    }
+                } catch (err) {
+                    console.error('Transcription failed:', err)
+                    setInput('')
+                } finally {
+                    setIsLoading(false)
+                }
+            }
+
+            recorder.start()
+            setIsListening(true)
+
+            // Auto stop after 10 seconds
+            setTimeout(() => {
+                if (recorder.state === 'recording') {
+                    recorder.stop()
+                }
+            }, 10000)
+
+        } catch (err) {
+            console.error('Mic error:', err)
+            alert('Could not access microphone. Please check permissions.')
         }
     }
 

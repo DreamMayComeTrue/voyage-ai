@@ -38,6 +38,7 @@ ITINERARY RULES:
 
 Be warm, helpful and concise. Use emojis naturally.`
 
+// ── Send chat message with streaming ──────────────────────────────────────
 export const sendMessage = async (messages, onChunk) => {
     const response = await client.messages.create({
         model: 'claude-sonnet-4-20250514',
@@ -46,7 +47,6 @@ export const sendMessage = async (messages, onChunk) => {
         messages: messages,
         stream: true,
     })
-
     let fullText = ''
     for await (const chunk of response) {
         if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
@@ -57,6 +57,57 @@ export const sendMessage = async (messages, onChunk) => {
     return fullText
 }
 
+// ── Transcribe audio using Groq Whisper (free, works in Electron) ─────────
+// Groq Whisper is completely free at console.groq.com
+export const transcribeAudio = async (audioBlob) => {
+    try {
+        const GROQ_KEY = process.env.REACT_APP_GROQ_API_KEY
+        if (!GROQ_KEY) {
+            console.error('REACT_APP_GROQ_API_KEY not set in .env')
+            return ''
+        }
+
+        // Groq expects a file upload via FormData
+        const formData = new FormData()
+
+        // Give the blob a proper filename with extension
+        const mimeType = audioBlob.type || 'audio/webm'
+        const ext = mimeType.includes('ogg') ? 'ogg'
+            : mimeType.includes('mp4') ? 'mp4'
+                : mimeType.includes('wav') ? 'wav'
+                    : 'webm'
+        const file = new File([audioBlob], `recording.${ext}`, { type: mimeType })
+
+        formData.append('file', file)
+        formData.append('model', 'whisper-large-v3-turbo')  // free, fast, multilingual
+        formData.append('response_format', 'json')
+        // Don't set language — let Whisper auto-detect (supports Chinese, Malay, English)
+
+        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_KEY}`,
+            },
+            body: formData,
+        })
+
+        if (!response.ok) {
+            const err = await response.text()
+            console.error('Groq transcription error:', err)
+            return ''
+        }
+
+        const data = await response.json()
+        console.log('Transcribed:', data.text)
+        return data.text?.trim() || ''
+
+    } catch (err) {
+        console.error('transcribeAudio error:', err.message)
+        return ''
+    }
+}
+
+// ── Detect language ───────────────────────────────────────────────────────
 export const detectLanguage = async (text) => {
     try {
         const response = await client.messages.create({
@@ -64,8 +115,8 @@ export const detectLanguage = async (text) => {
             max_tokens: 50,
             messages: [{
                 role: 'user',
-                content: `Detect the language of this text and reply with ONLY the language code. Examples: "en" for English, "zh" for Chinese, "ms" for Malay, "ja" for Japanese, "ko" for Korean, "th" for Thai, "ar" for Arabic. Text: "${text}"`
-            }]
+                content: `Detect the language of this text and reply with ONLY the language code. Examples: "en" for English, "zh" for Chinese, "ms" for Malay, "ja" for Japanese, "ko" for Korean, "th" for Thai, "ar" for Arabic. Text: "${text}"`,
+            }],
         })
         return response.content[0].text.trim().toLowerCase().slice(0, 5)
     } catch {
@@ -73,16 +124,17 @@ export const detectLanguage = async (text) => {
     }
 }
 
+// ── Translate text ────────────────────────────────────────────────────────
 export const translateText = async (text, fromLang, toLang) => {
-    if (fromLang === toLang || fromLang === 'en' && toLang === 'en') return text
+    if (fromLang === toLang || (fromLang === 'en' && toLang === 'en')) return text
     try {
         const response = await client.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 1000,
             messages: [{
                 role: 'user',
-                content: `Translate the following text to ${toLang === 'en' ? 'English' : toLang}. Reply with ONLY the translated text, nothing else:\n\n${text}`
-            }]
+                content: `Translate the following text to ${toLang === 'en' ? 'English' : toLang}. Reply with ONLY the translated text, nothing else:\n\n${text}`,
+            }],
         })
         return response.content[0].text.trim()
     } catch {
