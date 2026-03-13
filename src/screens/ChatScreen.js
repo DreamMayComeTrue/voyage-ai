@@ -151,6 +151,7 @@ const ChatScreen = ({
                         trips,
                         initialPrompt,
                         setChatPrompt,
+                        setBookingData,
                     }) => {
 
     const WELCOME = {
@@ -840,13 +841,18 @@ const ChatScreen = ({
                             <FlightCard
                                 key={i}
                                 flight={flight}
-                                onBook={async () => {
-                                    saveTrip({ destination: flightResults.destination, date: flightResults.date, flight, type: 'flight' })
-                                    const cid = activeChatId || generateId()
-                                    await postAIMessageTranslated(
-                                        `✅ **${flight.flightNumber}** booked successfully! Check **My Trips** for your e-ticket. Have a great flight! ✈️`,
-                                        messages, cid, userLanguage
-                                    )
+                                onBook={() => {
+                                    // Go to payment screen with flight data
+                                    if (setBookingData) {
+                                        setBookingData({
+                                            type: 'flight',
+                                            flight,
+                                            date: flightResults.date,
+                                            origin: flightResults.origin,
+                                            destination: flightResults.destination,
+                                        })
+                                    }
+                                    setActiveScreen('payment')
                                     setFlightResults(null)
                                 }}
                             />
@@ -864,13 +870,16 @@ const ChatScreen = ({
                             <HotelCard
                                 key={i}
                                 hotel={hotel}
-                                onBook={async () => {
-                                    saveTrip({ destination: hotelResults.city, hotel, type: 'hotel' })
-                                    const cid = activeChatId || generateId()
-                                    await postAIMessageTranslated(
-                                        `✅ **${hotel.name}** booked! Check **My Trips** for your confirmation. 🏨`,
-                                        messages, cid, userLanguage
-                                    )
+                                onBook={() => {
+                                    // Go to payment screen with hotel data
+                                    if (setBookingData) {
+                                        setBookingData({
+                                            type: 'hotel',
+                                            hotel,
+                                            city: hotelResults.city,
+                                        })
+                                    }
+                                    setActiveScreen('payment')
                                     setHotelResults(null)
                                 }}
                             />

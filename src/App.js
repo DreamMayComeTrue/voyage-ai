@@ -7,6 +7,8 @@ import MyTripsScreen from './screens/MyTripsScreen'
 import ExploreScreen from './screens/ExploreScreen'
 import GuideScreen from './screens/GuideScreen'
 import MeScreen from './screens/MeScreen'
+import PaymentScreen from './screens/PaymentScreen'
+import ETicketScreen from './screens/ETicketScreen'
 import BottomNav from './components/BottomNav'
 import FloatingAIButton from './components/FloatingAIButton'
 import './App.css'
@@ -17,35 +19,109 @@ function App() {
     const [trips, setTrips] = useState([])
     const [language, setLanguage] = useState('en')
     const [chatPrompt, setChatPrompt] = useState('')
+    const [bookingData, setBookingData] = useState(null)
+    const [ticketData, setTicketData] = useState(null)
 
     const saveItinerary = (itinerary) => {
         setItineraries(prev => [...prev, itinerary])
     }
 
     const saveTrip = (trip) => {
-        setTrips(prev => [...prev, trip])
+        setTrips(prev => [...prev, { ...trip, id: Date.now() }])
+    }
+
+    // Payment and eticket screens — no BottomNav or FloatingAI shown
+    if (activeScreen === 'payment') {
+        return (
+            <div className="app-container">
+                <div className="screen-content">
+                    <PaymentScreen
+                        setActiveScreen={setActiveScreen}
+                        bookingData={bookingData}
+                        onPaymentComplete={(data) => {
+                            setTicketData(data)
+                            saveTrip(data)
+                            setActiveScreen('eticket')
+                        }}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    if (activeScreen === 'eticket') {
+        return (
+            <div className="app-container">
+                <div className="screen-content">
+                    <ETicketScreen
+                        setActiveScreen={setActiveScreen}
+                        ticketData={ticketData}
+                    />
+                </div>
+            </div>
+        )
     }
 
     const renderScreen = () => {
         switch (activeScreen) {
             case 'home':
-                return <HomeScreen setActiveScreen={setActiveScreen} itineraries={itineraries} trips={trips} />
+                return (
+                    <HomeScreen
+                        setActiveScreen={setActiveScreen}
+                        itineraries={itineraries}
+                        trips={trips}
+                    />
+                )
             case 'chat':
-                return <ChatScreen setActiveScreen={setActiveScreen} saveItinerary={saveItinerary} saveTrip={saveTrip} itineraries={itineraries} trips={trips} initialPrompt={chatPrompt} setChatPrompt={setChatPrompt} />
+                return (
+                    <ChatScreen
+                        setActiveScreen={setActiveScreen}
+                        saveItinerary={saveItinerary}
+                        saveTrip={saveTrip}
+                        itineraries={itineraries}
+                        trips={trips}
+                        initialPrompt={chatPrompt}
+                        setChatPrompt={setChatPrompt}
+                        setBookingData={setBookingData}
+                    />
+                )
             case 'itinerary':
-                return <ItineraryScreen itineraries={itineraries} setActiveScreen={setActiveScreen} />
+                return (
+                    <ItineraryScreen
+                        itineraries={itineraries}
+                        setActiveScreen={setActiveScreen}
+                    />
+                )
             case 'translate':
                 return <TranslateScreen setActiveScreen={setActiveScreen} />
             case 'mytrips':
-                return <MyTripsScreen trips={trips} setActiveScreen={setActiveScreen} />
+                return (
+                    <MyTripsScreen
+                        trips={trips}
+                        setActiveScreen={setActiveScreen}
+                        setTicketData={setTicketData}
+                    />
+                )
             case 'explore':
                 return <ExploreScreen setActiveScreen={setActiveScreen} />
             case 'guide':
                 return <GuideScreen setActiveScreen={setActiveScreen} />
             case 'me':
-                return <MeScreen setActiveScreen={setActiveScreen} language={language} setLanguage={setLanguage} />
+                return (
+                    <MeScreen
+                        setActiveScreen={setActiveScreen}
+                        language={language}
+                        setLanguage={setLanguage}
+                    />
+                )
             default:
-                return <HomeScreen setActiveScreen={setActiveScreen} itineraries={itineraries} trips={trips} />
+                return (
+                    <HomeScreen
+                        setActiveScreen={setActiveScreen}
+                        itineraries={itineraries}
+                        trips={trips}
+                    />
+                )
         }
     }
 
@@ -58,7 +134,6 @@ function App() {
                 activeScreen={activeScreen}
                 setActiveScreen={setActiveScreen}
             />
-            {/* Floating AI button — hidden when already on chat screen */}
             {activeScreen !== 'chat' && (
                 <FloatingAIButton
                     setActiveScreen={setActiveScreen}
