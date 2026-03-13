@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: linear-gradient(145deg, #1a2f5a 0%, #1e3a6a 50%, #1a2f5a 100%);
+  background: #f0f6ff;
   overflow: hidden;
   position: relative;
 }
@@ -11,24 +11,12 @@
 .app-container::before {
   content: '';
   position: fixed;
-  top: -150px;
+  top: -200px;
   left: 50%;
   transform: translateX(-50%);
-  width: 700px;
+  width: 800px;
   height: 500px;
-  background: radial-gradient(circle, #ffffff15 0%, transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.app-container::after {
-  content: '';
-  position: fixed;
-  bottom: -80px;
-  right: -80px;
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, #60a8f020 0%, transparent 70%);
+  background: radial-gradient(circle, #1e6fd915 0%, transparent 65%);
   pointer-events: none;
   z-index: 0;
 }
@@ -47,6 +35,6 @@
 }
 
 .screen-content::-webkit-scrollbar-thumb {
-  background: #60a8f0;
+  background: #1e6fd9;
   border-radius: 2px;
 }
