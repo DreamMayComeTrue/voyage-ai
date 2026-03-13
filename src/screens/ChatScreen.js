@@ -203,11 +203,15 @@ const ChatScreen = ({
         if (!SR) { console.warn('Speech Recognition not supported'); return }
 
         navigator.mediaDevices?.getUserMedia({ audio: true })
-            .then(() => {
+            .then((stream) => {
+                // Stop the stream immediately - we just needed permission
+                stream.getTracks().forEach(track => track.stop())
+
                 recognitionRef.current = new SR()
                 recognitionRef.current.continuous = false
                 recognitionRef.current.interimResults = true
                 recognitionRef.current.lang = navigator.language || 'en-US'
+                recognitionRef.current.maxAlternatives = 1
 
                 recognitionRef.current.onstart = () => setIsListening(true)
 

@@ -2,21 +2,31 @@ const { app, BrowserWindow, session } = require('electron')
 const path = require('path')
 const isDev = require('electron-is-dev')
 
-// Required for speech recognition in Electron
+app.commandLine.appendSwitch('enable-features', 'WebSpeechAPI')
+app.commandLine.appendSwitch('allow-http-screen-capture')
+// Required flags for speech recognition and mic
 app.commandLine.appendSwitch('enable-speech-dispatcher')
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
+app.commandLine.appendSwitch('disable-web-security')
 
 function createWindow() {
     // Set permissions BEFORE creating window
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        console.log('Permission requested:', permission)
-        const allowed = ['microphone', 'media', 'audioCapture', 'notifications', 'mediaKeySystem']
+        console.log('[Permission requested]:', permission)
+        // Allow all media/mic permissions
+        const allowed = [
+            'microphone', 'media', 'audioCapture',
+            'notifications', 'mediaKeySystem', 'geolocation'
+        ]
         callback(allowed.includes(permission))
     })
 
-    session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
+    session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
         const allowed = ['microphone', 'media', 'audioCapture']
-        return allowed.includes(permission)
+        const result = allowed.includes(permission)
+        console.log('[Permission check]:', permission, '→', result)
+        return result
     })
 
     const win = new BrowserWindow({
@@ -26,8 +36,6 @@ function createWindow() {
         minWidth: 350,
         minHeight: 600,
         frame: true,
-        transparent: false,
-        titleBarStyle: 'default',
         title: 'VoyageAI',
         webPreferences: {
             nodeIntegration: true,
@@ -35,7 +43,6 @@ function createWindow() {
             webSecurity: false,
             allowRunningInsecureContent: true,
             experimentalFeatures: true,
-            permissions: ['microphone'],
         },
         icon: path.join(__dirname, 'logo192.png')
     })
@@ -49,11 +56,9 @@ function createWindow() {
             : `file://${path.join(__dirname, '../build/index.html')}`
     )
 
-    win.on('page-title-updated', (e) => {
-        e.preventDefault()
-    })
+    win.on('page-title-updated', (e) => e.preventDefault())
 
-    // Open DevTools to see console logs (remove for production)
+    // Show DevTools in dev for debugging
     if (isDev) {
         win.webContents.openDevTools({ mode: 'detach' })
     }
