@@ -13,24 +13,65 @@ import BottomNav from './components/BottomNav'
 import FloatingAIButton from './components/FloatingAIButton'
 import './App.css'
 
+// ── Helper: extract clean trip info from booking data ─────────────────────
+const buildTrip = (data) => {
+    const isHotel = data?.type === 'hotel'
+    const flight  = data?.flight || {}
+    const hotel   = data?.hotel  || {}
+
+    // Normalise destination to uppercase IATA or title case city
+    const rawDest = isHotel
+        ? (data?.city || hotel.address?.split(',')[0] || 'Unknown')
+        : (data?.destination || flight.destination || 'Unknown')
+    const destination = rawDest.charAt(0).toUpperCase() + rawDest.slice(1).toLowerCase()
+
+    // Date: use check-in date for hotels, flight date for flights
+    // Never fall back to today — use null so "TBD" shows instead
+    const date = data?.checkIn || data?.date || null
+
+    // Friendly date display
+    const dateDisplay = (() => {
+        try {
+            return new Date(date).toLocaleDateString('en-MY', {
+                day: 'numeric', month: 'short', year: 'numeric'
+            })
+        } catch { return date }
+    })()
+
+    return {
+        ...data,
+        id:          Date.now(),
+        destination,
+        date,
+        dateDisplay,
+        title:       isHotel ? hotel.name : `${flight.origin || 'KUL'} → ${destination}`,
+        type:        data?.type || 'flight',
+        status:      'confirmed',
+        bookingRef:  data?.bookingRef || 'VA000000',
+        savedAt:     new Date().toISOString(),
+    }
+}
+
 function App() {
     const [activeScreen, setActiveScreen] = useState('home')
-    const [itineraries, setItineraries] = useState([])
-    const [trips, setTrips] = useState([])
-    const [language, setLanguage] = useState('en')
-    const [chatPrompt, setChatPrompt] = useState('')
-    const [bookingData, setBookingData] = useState(null)
-    const [ticketData, setTicketData] = useState(null)
+    const [itineraries, setItineraries]   = useState([])
+    const [trips, setTrips]               = useState([])
+    const [language, setLanguage]         = useState('en')
+    const [chatPrompt, setChatPrompt]     = useState('')
+    const [bookingData, setBookingData]   = useState(null)
+    const [ticketData, setTicketData]     = useState(null)
 
     const saveItinerary = (itinerary) => {
         setItineraries(prev => [...prev, itinerary])
     }
 
-    const saveTrip = (trip) => {
-        setTrips(prev => [...prev, { ...trip, id: Date.now() }])
+    const saveTrip = (data) => {
+        const trip = buildTrip(data)
+        setTrips(prev => [...prev, trip])
+        return trip
     }
 
-    // Payment and eticket screens — no BottomNav or FloatingAI shown
+    // Payment screen — no BottomNav
     if (activeScreen === 'payment') {
         return (
             <div className="app-container">
@@ -39,8 +80,8 @@ function App() {
                         setActiveScreen={setActiveScreen}
                         bookingData={bookingData}
                         onPaymentComplete={(data) => {
-                            setTicketData(data)
-                            saveTrip(data)
+                            const trip = saveTrip(data)
+                            setTicketData({ ...data, ...trip })
                             setActiveScreen('eticket')
                         }}
                     />
@@ -49,6 +90,7 @@ function App() {
         )
     }
 
+    // E-ticket screen — no BottomNav
     if (activeScreen === 'eticket') {
         return (
             <div className="app-container">
@@ -130,10 +172,7 @@ function App() {
             <div className="screen-content">
                 {renderScreen()}
             </div>
-            <BottomNav
-                activeScreen={activeScreen}
-                setActiveScreen={setActiveScreen}
-            />
+            <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
             {activeScreen !== 'chat' && (
                 <FloatingAIButton
                     setActiveScreen={setActiveScreen}

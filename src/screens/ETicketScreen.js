@@ -1,8 +1,81 @@
-import React, { useRef } from 'react'
-import { ArrowLeft, Plane, Download, Share2, Home, CheckCircle } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { ArrowLeft, Plane, Download, Share2, Home, CheckCircle, Star } from 'lucide-react'
 
+// ── QR Code Generator (pure JS, no library needed) ───────────────────────
+// Simple QR-like visual using the booking ref as seed
+const QRCode = ({ value, size = 140 }) => {
+    const grid = useMemo(() => {
+        // Generate a deterministic 21x21 grid from the value string
+        const cells = 21
+        const matrix = []
+        let seed = 0
+        for (let i = 0; i < value.length; i++) seed = (seed * 31 + value.charCodeAt(i)) & 0xffffffff
+
+        const rand = () => {
+            seed = (seed ^ (seed << 13)) & 0xffffffff
+            seed = (seed ^ (seed >> 7))  & 0xffffffff
+            seed = (seed ^ (seed << 5))  & 0xffffffff
+            return Math.abs(seed) / 0x7fffffff
+        }
+
+        for (let r = 0; r < cells; r++) {
+            matrix[r] = []
+            for (let c = 0; c < cells; c++) {
+                // Fixed finder patterns (top-left, top-right, bottom-left corners)
+                const inFinder = (
+                    (r < 8 && c < 8) ||           // top-left
+                    (r < 8 && c >= cells - 8) ||   // top-right
+                    (r >= cells - 8 && c < 8)      // bottom-left
+                )
+                if (inFinder) {
+                    // Draw finder pattern squares
+                    const tl = r <= 6 && c <= 6
+                    const tr = r <= 6 && c >= cells - 7
+                    const bl = r >= cells - 7 && c <= 6
+
+                    const inOuter = (r === 0 || r === 6 || c === 0 || c === 6) && tl
+                        || (r === 0 || r === 6 || c === cells-1 || c === cells-7) && tr
+                        || (r === cells-1 || r === cells-7 || c === 0 || c === 6) && bl
+
+                    const inInner = (r >= 2 && r <= 4 && c >= 2 && c <= 4) && tl
+                        || (r >= 2 && r <= 4 && c >= cells-5 && c <= cells-3) && tr
+                        || (r >= cells-5 && r <= cells-3 && c >= 2 && c <= 4) && bl
+
+                    matrix[r][c] = inOuter || inInner ? 1 : 0
+                } else {
+                    matrix[r][c] = rand() > 0.5 ? 1 : 0
+                }
+            }
+        }
+        return matrix
+    }, [value])
+
+    const cellSize = size / 21
+
+    return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+             style={{ display: 'block' }}>
+            <rect width={size} height={size} fill='white' />
+            {grid.map((row, r) =>
+                row.map((cell, c) =>
+                    cell === 1 ? (
+                        <rect
+                            key={`${r}-${c}`}
+                            x={c * cellSize}
+                            y={r * cellSize}
+                            width={cellSize}
+                            height={cellSize}
+                            fill='#0a1628'
+                        />
+                    ) : null
+                )
+            )}
+        </svg>
+    )
+}
+
+// ── Main Component ────────────────────────────────────────────────────────
 const ETicketScreen = ({ setActiveScreen, ticketData }) => {
-    const ticketRef = useRef(null)
 
     const formatTime = (dateStr) => {
         if (!dateStr || dateStr === 'TBD') return 'TBD'
@@ -22,17 +95,48 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
         } catch { return dateStr }
     }
 
-    const flight  = ticketData?.flight || {}
-    const ref     = ticketData?.bookingRef || 'VA000000'
-    const name    = ticketData?.passengerName || 'Passenger'
-    const passport= ticketData?.passportNumber || 'N/A'
-    const email   = ticketData?.passengerEmail || ''
-    const price   = ticketData?.price || flight.price || 'MYR 580'
-    const date    = ticketData?.date  || ''
-    const paidAt  = ticketData?.paidAt ? formatDate(ticketData.paidAt) : formatDate(new Date().toISOString())
+    const isHotel  = ticketData?.type === 'hotel'
+    const flight   = ticketData?.flight || {}
+    const hotel    = ticketData?.hotel  || {}
+    const ref      = ticketData?.bookingRef    || 'VA000000'
+    const name     = ticketData?.passengerName || 'Passenger'
+    const passport = ticketData?.passportNumber || 'N/A'
+    const email    = ticketData?.passengerEmail || ''
+    const date     = ticketData?.date || ''
+    const paidAt   = ticketData?.paidAt
+        ? formatDate(ticketData.paidAt)
+        : formatDate(new Date().toISOString())
 
-    // Generate a simple barcode-like pattern from booking ref
-    const barcodeData = ref.split('').map(c => c.charCodeAt(0))
+    const rawPrice = isHotel
+        ? (hotel.price || 'MYR 380').split('/')[0].trim()
+        : (flight.price || 'MYR 580')
+    const totalPrice = rawPrice.replace('MYR ','')
+        ? `MYR ${(parseInt(rawPrice.replace('MYR ','').replace(/,/g,'')) + 55).toLocaleString()}`
+        : rawPrice
+
+    // Fixed seat for flight (stable, not re-randomising on re-render)
+    const seatNum  = useMemo(() => `${Math.floor(Math.random()*30)+1}${['A','B','C','D','E','F'][Math.floor(Math.random()*6)]}`, [ref])
+
+    // Grid info differs for flight vs hotel
+    const infoGrid = isHotel ? [
+        { label: 'Hotel',      value: hotel.name || 'Hotel' },
+        { label: 'Location',   value: hotel.address || ticketData?.city || 'N/A' },
+        { label: 'Rating',     value: `${'⭐'.repeat(hotel.stars || 4)}` },
+        { label: 'Check-in',   value: date || 'Upon arrival' },
+        { label: 'Status',     value: 'Confirmed' },
+        { label: 'Amount Paid',value: totalPrice },
+    ] : [
+        { label: 'Terminal',   value: flight.terminal || 'T1' },
+        { label: 'Gate',       value: flight.gate     || 'G10' },
+        { label: 'Seat',       value: seatNum },
+        { label: 'Class',      value: 'Economy' },
+        { label: 'Status',     value: flight.status   || 'Confirmed' },
+        { label: 'Amount Paid',value: totalPrice },
+    ]
+
+    const shareText = isHotel
+        ? `Hotel: ${hotel.name} | ${ticketData?.city} | Ref: ${ref}`
+        : `Flight ${flight.flightNumber} | ${flight.origin} → ${flight.destination} | Ref: ${ref}`
 
     return (
         <div style={{
@@ -54,7 +158,7 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                 </button>
                 <div style={{ flex: 1 }}>
                     <p style={{ color: '#0a1628', fontSize: '16px', fontWeight: '700' }}>
-                        E-Ticket
+                        {isHotel ? 'Hotel Voucher' : 'E-Ticket'}
                     </p>
                     <p style={{ color: '#059669', fontSize: '11px', fontWeight: '600',
                         display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -81,33 +185,33 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                 }}>
                     <CheckCircle size={36} color='#ffffff' style={{ marginBottom: '8px' }} />
                     <p style={{ color: '#ffffff', fontSize: '18px', fontWeight: '800' }}>
-                        Booking Confirmed!
+                        {isHotel ? 'Hotel Booked!' : 'Booking Confirmed!'}
                     </p>
-                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', marginTop: '4px' }}>
-                        A copy has been sent to {email}
-                    </p>
+                    {email && (
+                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '4px' }}>
+                            Confirmation sent to {email}
+                        </p>
+                    )}
                 </div>
 
-                {/* Ticket Card */}
-                <div ref={ticketRef} style={{
-                    background: '#ffffff',
-                    borderRadius: '20px',
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 32px #1e6fd920',
-                    border: '1px solid #e0ecff',
+                {/* Ticket / Voucher Card */}
+                <div style={{
+                    background: '#ffffff', borderRadius: '20px', overflow: 'hidden',
+                    boxShadow: '0 8px 32px #1e6fd920', border: '1px solid #e0ecff',
                     marginBottom: '16px',
                 }}>
-                    {/* Ticket Header */}
+                    {/* Card Header — blue gradient */}
                     <div style={{
                         background: 'linear-gradient(135deg, #1e6fd9, #4a9fe8)',
                         padding: '20px',
                     }}>
+                        {/* Booking ref row */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: '600' }}>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '600' }}>
                                     BOOKING REFERENCE
                                 </p>
-                                <p style={{ color: '#ffffff', fontSize: '24px', fontWeight: '900',
+                                <p style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900',
                                     letterSpacing: '2px', fontFamily: 'monospace' }}>
                                     {ref}
                                 </p>
@@ -116,98 +220,109 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                                 background: 'rgba(255,255,255,0.15)',
                                 borderRadius: '12px', padding: '8px 12px', textAlign: 'center',
                             }}>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>AIRLINE</p>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>
+                                    {isHotel ? 'HOTEL' : 'AIRLINE'}
+                                </p>
                                 <p style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>
-                                    {flight.airline || 'AirAsia'}
+                                    {isHotel ? (hotel.name?.split(' ').slice(0,2).join(' ') || 'Hotel') : (flight.airline || 'AirAsia')}
                                 </p>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
-                                    {flight.flightNumber || 'AK500'}
-                                </p>
+                                {!isHotel && (
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
+                                        {flight.flightNumber || 'AK500'}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
-                        {/* Route */}
-                        <div style={{
-                            display: 'flex', alignItems: 'center', marginTop: '20px', gap: '8px',
-                        }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <p style={{ color: '#ffffff', fontSize: '28px', fontWeight: '900',
-                                    lineHeight: 1, fontFamily: 'monospace' }}>
-                                    {flight.origin || 'KUL'}
-                                </p>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '4px' }}>
-                                    {formatTime(flight.departureTime)}
-                                </p>
-                            </div>
-                            <div style={{ flex: 1, textAlign: 'center' }}>
-                                <Plane size={20} color='#ffffff' />
-                                <div style={{ height: '1px', background: 'rgba(255,255,255,0.4)', marginTop: '4px' }} />
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <p style={{ color: '#ffffff', fontSize: '28px', fontWeight: '900',
-                                    lineHeight: 1, fontFamily: 'monospace' }}>
-                                    {flight.destination || 'NRT'}
-                                </p>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '4px' }}>
-                                    {formatTime(flight.arrivalTime)}
-                                </p>
-                            </div>
+                        {/* Flight route OR hotel info */}
+                        <div style={{ marginTop: '20px' }}>
+                            {isHotel ? (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.12)',
+                                    borderRadius: '12px', padding: '12px',
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                }}>
+                                    <span style={{ fontSize: '28px' }}>🏨</span>
+                                    <div>
+                                        <p style={{ color: '#ffffff', fontSize: '16px', fontWeight: '800' }}>
+                                            {hotel.name || 'Hotel'}
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px' }}>
+                                            📍 {hotel.address || ticketData?.city || 'N/A'}
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginTop: '2px' }}>
+                                            {'⭐'.repeat(hotel.stars || 4)} · {hotel.price || 'MYR 380'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ textAlign: 'center', minWidth: '60px' }}>
+                                        <p style={{ color: '#ffffff', fontSize: '26px', fontWeight: '900',
+                                            lineHeight: 1, fontFamily: 'monospace' }}>
+                                            {flight.origin || 'KUL'}
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '4px' }}>
+                                            {formatTime(flight.departureTime)}
+                                        </p>
+                                    </div>
+                                    <div style={{ flex: 1, textAlign: 'center' }}>
+                                        <Plane size={18} color='#ffffff' />
+                                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.4)', marginTop: '4px' }} />
+                                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '10px', marginTop: '4px' }}>
+                                            {formatDate(date)}
+                                        </p>
+                                    </div>
+                                    <div style={{ textAlign: 'center', minWidth: '60px' }}>
+                                        <p style={{ color: '#ffffff', fontSize: '26px', fontWeight: '900',
+                                            lineHeight: 1, fontFamily: 'monospace' }}>
+                                            {flight.destination || 'NRT'}
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '4px' }}>
+                                            {formatTime(flight.arrivalTime)}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', textAlign: 'center', marginTop: '8px' }}>
-                            {formatDate(date) || formatDate(new Date().toISOString())}
-                        </p>
                     </div>
 
                     {/* Tear line */}
-                    <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div style={{
-                            width: '24px', height: '24px', borderRadius: '50%',
-                            background: '#f0f6ff', flexShrink: 0,
-                            marginLeft: '-12px',
-                            border: '1px solid #e0ecff',
+                            width: '22px', height: '22px', borderRadius: '50%',
+                            background: '#f0f6ff', marginLeft: '-11px', flexShrink: 0,
                         }} />
+                        <div style={{ flex: 1, borderTop: '2px dashed #c0d8f0', margin: '0 4px' }} />
                         <div style={{
-                            flex: 1,
-                            borderTop: '2px dashed #c0d8f0',
-                            margin: '0 8px',
-                        }} />
-                        <div style={{
-                            width: '24px', height: '24px', borderRadius: '50%',
-                            background: '#f0f6ff', flexShrink: 0,
-                            marginRight: '-12px',
-                            border: '1px solid #e0ecff',
+                            width: '22px', height: '22px', borderRadius: '50%',
+                            background: '#f0f6ff', marginRight: '-11px', flexShrink: 0,
                         }} />
                     </div>
 
                     {/* Ticket Body */}
                     <div style={{ padding: '20px' }}>
+
                         {/* Passenger */}
                         <div style={{ marginBottom: '16px' }}>
-                            <p style={{ color: '#8aaac8', fontSize: '11px', fontWeight: '600',
+                            <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600',
                                 textTransform: 'uppercase', marginBottom: '4px' }}>
-                                Passenger
+                                {isHotel ? 'Guest' : 'Passenger'}
                             </p>
                             <p style={{ color: '#0a1628', fontSize: '16px', fontWeight: '700' }}>
                                 {name}
                             </p>
                             <p style={{ color: '#5a7a9f', fontSize: '12px' }}>
-                                Passport: {passport}
+                                {isHotel ? 'Guest ID' : 'Passport'}: {passport}
                             </p>
                         </div>
 
-                        {/* Grid info */}
+                        {/* Info Grid */}
                         <div style={{
                             display: 'grid', gridTemplateColumns: '1fr 1fr',
-                            gap: '12px', marginBottom: '16px',
+                            gap: '10px', marginBottom: '20px',
                         }}>
-                            {[
-                                { label: 'Terminal', value: flight.terminal || 'T1' },
-                                { label: 'Gate', value: flight.gate || 'G10' },
-                                { label: 'Seat', value: `${Math.floor(Math.random()*30)+1}${['A','B','C','D','E','F'][Math.floor(Math.random()*6)]}` },
-                                { label: 'Class', value: 'Economy' },
-                                { label: 'Status', value: flight.status || 'Confirmed' },
-                                { label: 'Amount Paid', value: price?.replace('MYR ', '') ? `MYR ${parseInt(price.replace('MYR ',''))+55}` : price },
-                            ].map((item, i) => (
+                            {infoGrid.map((item, i) => (
                                 <div key={i} style={{
                                     background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px',
                                 }}>
@@ -215,50 +330,56 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                                         textTransform: 'uppercase' }}>
                                         {item.label}
                                     </p>
-                                    <p style={{ color: '#0a1628', fontSize: '13px', fontWeight: '700',
-                                        marginTop: '2px', textTransform: 'capitalize' }}>
+                                    <p style={{ color: '#0a1628', fontSize: '12px', fontWeight: '700',
+                                        marginTop: '2px' }}>
                                         {item.value}
                                     </p>
                                 </div>
                             ))}
                         </div>
 
-                        {/* Barcode */}
+                        {/* QR Code */}
                         <div style={{
-                            background: '#f8faff', borderRadius: '12px',
-                            padding: '16px', textAlign: 'center',
+                            background: '#f8faff', borderRadius: '16px',
+                            padding: '20px', textAlign: 'center',
                             border: '1px solid #e0ecff',
                         }}>
-                            {/* Visual barcode using divs */}
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '2px', marginBottom: '8px' }}>
-                                {Array.from({length: 40}).map((_, i) => (
-                                    <div key={i} style={{
-                                        width: i % 3 === 0 ? '3px' : '1.5px',
-                                        height: i % 5 === 0 ? '40px' : '30px',
-                                        background: '#0a1628',
-                                        borderRadius: '1px',
-                                    }} />
-                                ))}
+                            <p style={{ color: '#5a7a9f', fontSize: '11px', fontWeight: '600',
+                                marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                Scan to Verify
+                            </p>
+
+                            {/* QR Code — white background with border */}
+                            <div style={{
+                                display: 'inline-block',
+                                background: '#ffffff',
+                                border: '3px solid #0a1628',
+                                borderRadius: '12px',
+                                padding: '10px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            }}>
+                                <QRCode value={ref + name + (isHotel ? hotel.name : flight.flightNumber)} size={130} />
                             </div>
-                            <p style={{ color: '#5a7a9f', fontSize: '12px',
-                                fontFamily: 'monospace', letterSpacing: '3px' }}>
+
+                            <p style={{ color: '#0a1628', fontSize: '13px', fontWeight: '800',
+                                fontFamily: 'monospace', letterSpacing: '3px', marginTop: '12px' }}>
                                 {ref}
                             </p>
                             <p style={{ color: '#8aaac8', fontSize: '10px', marginTop: '4px' }}>
-                                Show this at the check-in counter
+                                {isHotel ? 'Show this at hotel check-in' : 'Show this at the check-in counter'}
                             </p>
                         </div>
 
-                        <p style={{ color: '#8aaac8', fontSize: '10px', textAlign: 'center', marginTop: '12px' }}>
+                        <p style={{ color: '#8aaac8', fontSize: '10px', textAlign: 'center', marginTop: '14px' }}>
                             Booked on {paidAt} via VoyageAI
                         </p>
                     </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
                     <button
-                        onClick={() => alert('In a real app, this would download a PDF ticket!')}
+                        onClick={() => alert('In a real app, this would save a PDF to your device!')}
                         style={{
                             flex: 1, background: '#ffffff',
                             border: '1.5px solid #1e6fd9', borderRadius: '12px',
@@ -267,18 +388,15 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                         }}
                     >
-                        <Download size={15} /> Download PDF
+                        <Download size={15} /> Save PDF
                     </button>
                     <button
                         onClick={() => {
                             if (navigator.share) {
-                                navigator.share({
-                                    title: 'My Flight Ticket',
-                                    text: `Flight ${flight.flightNumber} | ${flight.origin} → ${flight.destination} | Ref: ${ref}`,
-                                })
+                                navigator.share({ title: 'VoyageAI Booking', text: shareText })
                             } else {
-                                navigator.clipboard?.writeText(`Booking Ref: ${ref}`)
-                                    .then(() => alert('Booking reference copied!'))
+                                navigator.clipboard?.writeText(`Booking Ref: ${ref}\n${shareText}`)
+                                    .then(() => alert('Booking details copied to clipboard!'))
                             }
                         }}
                         style={{
@@ -293,7 +411,6 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                     </button>
                 </div>
 
-                {/* Back to Home */}
                 <button
                     onClick={() => setActiveScreen('home')}
                     style={{

@@ -499,7 +499,7 @@ const ChatScreen = ({
                         extractCity(englishText, 'in') || 'Tokyo')
 
                 if (!hasDate(text) && !hasDate(englishText) && !isHotelDateUpdate) {
-                    setPendingHotelSearch({ city })
+                    setPendingHotelSearch({ city, checkIn: null, checkOut: null })
                     setIsLoading(false)
                     await postAIMessageTranslated(
                         `🏨 Great! Looking for hotels in **${city}**.\n\nWhat are your **check-in and check-out dates**? For example:\n*"15 August to 18 August"*`,
@@ -509,8 +509,14 @@ const ChatScreen = ({
                 }
 
                 if (pendingHotelSearch) setPendingHotelSearch(null)
+                const date = extractDate(text) || extractDate(englishText)
                 const hotels = await searchHotels(city)
-                setHotelResults({ hotels, city })
+                setHotelResults({
+                    hotels,
+                    city,
+                    checkIn: date,
+                    date: date,
+                })
                 setIsLoading(false)
                 await postAIMessageTranslated(
                     `🏨 Found **${hotels.length} hotels** in **${city}**! Select one below to book.`,
@@ -871,12 +877,14 @@ const ChatScreen = ({
                                 key={i}
                                 hotel={hotel}
                                 onBook={() => {
-                                    // Go to payment screen with hotel data
                                     if (setBookingData) {
                                         setBookingData({
                                             type: 'hotel',
                                             hotel,
                                             city: hotelResults.city,
+                                            date: hotelResults.checkIn || hotelResults.date || null,
+                                            checkIn: hotelResults.checkIn || null,
+                                            checkOut: hotelResults.checkOut || null,
                                         })
                                     }
                                     setActiveScreen('payment')
