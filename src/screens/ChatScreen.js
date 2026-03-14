@@ -4,6 +4,8 @@ import {
     X, Check, Sparkles, User, Trash2
 } from 'lucide-react'
 import { sendMessage, detectLanguage, translateText, transcribeAudio } from '../services/claudeService'
+import { parseItineraryText } from './ItineraryScreen'
+import ItineraryPreviewCard from '../components/ItineraryPreviewCard'
 import { searchFlights, searchHotels, getWeather } from '../services/flightService'
 import FlightCard from '../components/FlightCard'
 import HotelCard from '../components/HotelCard'
@@ -89,6 +91,22 @@ const extractDate = (text) => {
 }
 
 const hasDate = (text) => extractDate(text) !== null
+
+// Extract check-in and check-out dates from text like "15 march to 18 march"
+const extractDateRange = (text) => {
+    const lower = text.toLowerCase()
+    // Split on "to", "until", "till", "-"
+    const parts = lower.split(/\s+(?:to|until|till|-)\s+/)
+    if (parts.length >= 2) {
+        const checkIn  = extractDate(parts[0])
+        const checkOut = extractDate(parts[1])
+        if (checkIn && checkOut) return { checkIn, checkOut }
+        if (checkIn) return { checkIn, checkOut: null }
+    }
+    // Single date only
+    const single = extractDate(text)
+    return single ? { checkIn: single, checkOut: null } : { checkIn: null, checkOut: null }
+}
 
 const isPastDate = (text) => {
     const lower = text.toLowerCase()
@@ -178,6 +196,9 @@ const ChatScreen = ({
     const [currentTripDay, setCurrentTripDay] = useState(null)
     const [pendingFlightSearch, setPendingFlightSearch] = useState(null)
     const [pendingHotelSearch, setPendingHotelSearch] = useState(null)
+    const [pendingItineraryInfo, setPendingItineraryInfo] = useState(null)
+    // { destination: null, days: null, startDate: null, endDate: null, step: 'destination'|'days'|'dates'|'validate' }
+
     const [userLanguage, setUserLanguage] = useState('en')
 
     const messagesEndRef = useRef(null)
@@ -371,6 +392,33 @@ const ChatScreen = ({
         return postAIMessage(translated, baseMessages, chatId)
     }
 
+    const toTitleCase = (str) =>
+        str ? str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : str
+
+    // Extract number of days from text
+    const extractDays = (text) => {
+        const m = text.match(/(\d+)\s*(?:day|days|night|nights)/i)
+        return m ? parseInt(m[1]) : null
+    }
+
+    // Count days between two date strings
+    const countDaysBetween = (start, end) => {
+        try {
+            const d1 = new Date(start); d1.setHours(0,0,0,0)
+            const d2 = new Date(end);   d2.setHours(0,0,0,0)
+            return Math.round((d2 - d1) / 86400000) + 1
+        } catch { return null }
+    }
+
+    // Format date nicely: "Mon, 20 Mar"
+    const formatDateNice = (dateStr) => {
+        try {
+            return new Date(dateStr).toLocaleDateString('en-MY', {
+                weekday: 'short', day: 'numeric', month: 'short'
+            })
+        } catch { return dateStr }
+    }
+
     // ── Main Send Handler ─────────────────────────────────────────────────────
     const handleSend = async (textOverride) => {
         const text = (textOverride || input).trim()
@@ -448,10 +496,225 @@ const ChatScreen = ({
             const isHotelSearch  = lower.includes('hotel') || lower.includes('stay') || lower.includes('accommodation')
             const isWeather      = lower.includes('weather') || lower.includes('rain') || lower.includes('temperature') || lower.includes('forecast')
 
+            const isItineraryRequest = lower.includes('itinerary') || lower.includes('plan') && (lower.includes('day') || lower.includes('trip')) || lower.includes('schedule') || lower.includes('what to do in')
+
             const isFlightDateUpdate = (hasDate(text) || hasDate(englishText)) && !isFlightSearch && !isHotelSearch &&
                 (pendingFlightSearch !== null || flightResults !== null)
             const isHotelDateUpdate = (hasDate(text) || hasDate(englishText)) && !isFlightSearch && !isHotelSearch &&
                 (pendingHotelSearch !== null || hotelResults !== null) && !isFlightDateUpdate
+
+            // ── ITINERARY GUIDED FLOW ─────────────────────────────────────
+            // Handle ongoing itinerary conversation
+            if (pendingItineraryInfo) {
+                const info = { ...pendingItineraryInfo }
+
+                if (info.step === 'destination') {
+                    // User just gave destination
+                    const dest = englishText.replace(/[^a-zA-Z\s]/g, '').trim()
+                    info.destination = dest
+                    info.step = 'days'
+                    setPendingItineraryInfo(info)
+                    setIsLoading(false)
+                    await postAIMessageTranslated(
+                        `Great choice! **${dest}** is amazing 🌟\n\nHow many days are you planning for your trip?`,
+                        newMessages, chatId, detectedLang
+                    )
+                    return
+                }
+
+                if (info.step === 'days') {
+                    const days = extractDays(englishText) || parseInt(englishText.match(/\d+/)?.[0])
+                    if (!days || days < 1) {
+                        setIsLoading(false)
+                        await postAIMessageTranslated(
+                            `Please tell me how many days you\'re planning — for example: "3 days" or "5 days" 😊`,
+                            newMessages, chatId, detectedLang
+                        )
+                        return
+                    }
+                    info.days = days
+                    info.step = 'dates'
+                    setPendingItineraryInfo(info)
+                    setIsLoading(false)
+                    await postAIMessageTranslated(
+                        `Perfect — **${days} days** in **${info.destination}**! 🗓️\n\nWhat dates are you planning? For example:\n*"20 March to 22 March"*`,
+                        newMessages, chatId, detectedLang
+                    )
+                    return
+                }
+
+                if (info.step === 'dates') {
+                    const { checkIn: start, checkOut: end } = extractDateRange(englishText) || extractDateRange(text) || {}
+                    if (!start) {
+                        setIsLoading(false)
+                        await postAIMessageTranslated(
+                            `Please give me a date range like *"20 March to 22 March"* 📅`,
+                            newMessages, chatId, detectedLang
+                        )
+                        return
+                    }
+                    const dateRangeDays = end ? countDaysBetween(start, end) : null
+                    info.startDate = start
+                    info.endDate = end || null
+
+                    if (dateRangeDays && dateRangeDays !== info.days) {
+                        // Date range doesn't match days — ask user to confirm
+                        info.step = 'validate'
+                        info.dateRangeDays = dateRangeDays
+                        setPendingItineraryInfo(info)
+                        setIsLoading(false)
+                        await postAIMessageTranslated(
+                            `Just to confirm — **${formatDateNice(start)}** to **${formatDateNice(end)}** is **${dateRangeDays} days**, but you mentioned **${info.days} days** earlier.\n\nWhich would you like?\n• Reply **"${dateRangeDays}"** for ${dateRangeDays}-day itinerary (${formatDateNice(start)} to ${formatDateNice(end)})\n• Reply **"${info.days}"** for ${info.days}-day itinerary (starting ${formatDateNice(start)})`,
+                            newMessages, chatId, detectedLang
+                        )
+                        return
+                    }
+
+                    // All good — generate itinerary
+                    info.step = 'done'
+                    setPendingItineraryInfo(null)
+                    // Fall through to Claude with all info injected
+                    const prompt = `Create a ${info.days}-day itinerary for ${info.destination} from ${formatDateNice(info.startDate)}${info.endDate ? ' to ' + formatDateNice(info.endDate) : ''}. Include the date in each day header.`
+                    const injectedMessages = [...newMessages, { role: 'user', content: prompt }]
+                        .filter(m => m.type === 'text').map(m => ({ role: m.role, content: m.content }))
+
+                    let fullResponse = ''
+                    await sendMessage(injectedMessages, (chunk) => {
+                        fullResponse += chunk
+                        setStreamingText(fullResponse)
+                    })
+                    setStreamingText('')
+
+                    const parsed = parseItineraryText(fullResponse, `${info.days}-Day ${toTitleCase(info.destination)} Trip`)
+                    if (parsed?.days?.length > 0) {
+                        parsed.startDate = info.startDate
+                        parsed.endDate   = info.endDate
+                        setPendingItinerary(parsed)
+                        setCurrentTripDay(1)
+                    } else {
+                        postAIMessage(fullResponse, newMessages, chatId)
+                    }
+                    setIsLoading(false)
+                    return
+                }
+
+                if (info.step === 'validate') {
+                    // User chose which day count to use
+                    const chosen = parseInt(englishText.match(/\d+/)?.[0])
+                    const useDateRange = chosen === info.dateRangeDays
+                    const finalDays = useDateRange ? info.dateRangeDays : info.days
+
+                    info.days = finalDays
+                    if (!useDateRange) {
+                        // Recalculate end date based on original days from startDate
+                        const newEnd = new Date(info.startDate)
+                        newEnd.setDate(newEnd.getDate() + finalDays - 1)
+                        info.endDate = newEnd.toISOString().split('T')[0]
+                    }
+                    info.step = 'done'
+                    setPendingItineraryInfo(null)
+
+                    const prompt = `Create a ${finalDays}-day itinerary for ${info.destination} from ${formatDateNice(info.startDate)} to ${formatDateNice(info.endDate)}. Include the date in each day header.`
+                    const injectedMessages = [...newMessages, { role: 'user', content: prompt }]
+                        .filter(m => m.type === 'text').map(m => ({ role: m.role, content: m.content }))
+
+                    let fullResponse = ''
+                    await sendMessage(injectedMessages, (chunk) => {
+                        fullResponse += chunk
+                        setStreamingText(fullResponse)
+                    })
+                    setStreamingText('')
+
+                    const parsed = parseItineraryText(fullResponse, `${finalDays}-Day ${toTitleCase(info.destination)} Trip`)
+                    if (parsed?.days?.length > 0) {
+                        parsed.startDate = info.startDate
+                        parsed.endDate   = info.endDate
+                        setPendingItinerary(parsed)
+                        setCurrentTripDay(1)
+                    } else {
+                        postAIMessage(fullResponse, newMessages, chatId)
+                    }
+                    setIsLoading(false)
+                    return
+                }
+            }
+
+            // Start new itinerary flow if user asks for itinerary
+            if (isItineraryRequest) {
+                const dest = extractCity(englishText, 'in') || extractCity(englishText, 'to') || extractCity(englishText, 'for')
+                const days = extractDays(englishText)
+
+                if (!dest) {
+                    // No destination — ask
+                    setPendingItineraryInfo({ step: 'destination', destination: null, days, startDate: null, endDate: null })
+                    setIsLoading(false)
+                    await postAIMessageTranslated(
+                        `I'd love to help plan your trip! 🗺️\n\nWhich city or destination are you thinking of?`,
+                        newMessages, chatId, detectedLang
+                    )
+                    return
+                }
+
+                if (!days) {
+                    // Has destination, no days — ask
+                    setPendingItineraryInfo({ step: 'days', destination: dest, days: null, startDate: null, endDate: null })
+                    setIsLoading(false)
+                    await postAIMessageTranslated(
+                        `${dest} is a great choice! 🌟\n\nHow many days are you planning for your trip?`,
+                        newMessages, chatId, detectedLang
+                    )
+                    return
+                }
+
+                // Has destination + days — ask for dates
+                const { checkIn: start, checkOut: end } = extractDateRange(englishText) || extractDateRange(text) || {}
+                if (!start) {
+                    setPendingItineraryInfo({ step: 'dates', destination: dest, days, startDate: null, endDate: null })
+                    setIsLoading(false)
+                    await postAIMessageTranslated(
+                        `**${days} days** in **${dest}** sounds amazing! 🎉\n\nWhat dates are you planning? For example:\n*"20 March to 22 March"*`,
+                        newMessages, chatId, detectedLang
+                    )
+                    return
+                }
+
+                // Has everything — validate dates
+                const dateRangeDays = end ? countDaysBetween(start, end) : null
+                if (dateRangeDays && dateRangeDays !== days) {
+                    setPendingItineraryInfo({ step: 'validate', destination: dest, days, startDate: start, endDate: end, dateRangeDays })
+                    setIsLoading(false)
+                    await postAIMessageTranslated(
+                        `Just to confirm — **${formatDateNice(start)}** to **${formatDateNice(end)}** is **${dateRangeDays} days**, but you mentioned **${days} days**.\n\nWhich would you like?\n• Reply **"${dateRangeDays}"** → ${dateRangeDays}-day itinerary\n• Reply **"${days}"** → ${days}-day itinerary from ${formatDateNice(start)}`,
+                        newMessages, chatId, detectedLang
+                    )
+                    return
+                }
+
+                // All info complete — generate directly
+                setPendingItineraryInfo(null)
+                const prompt = `Create a ${days}-day itinerary for ${dest} from ${formatDateNice(start)}${end ? ' to ' + formatDateNice(end) : ''}. Include the date in each day header.`
+                const injectedMessages = [...newMessages, { role: 'user', content: prompt }]
+                    .filter(m => m.type === 'text').map(m => ({ role: m.role, content: m.content }))
+
+                let fullResponse = ''
+                await sendMessage(injectedMessages, (chunk) => {
+                    fullResponse += chunk
+                    setStreamingText(fullResponse)
+                })
+                setStreamingText('')
+
+                const parsed = parseItineraryText(fullResponse, `${days}-Day ${toTitleCase(dest)} Trip`)
+                if (parsed?.days?.length > 0) {
+                    parsed.startDate = start
+                    parsed.endDate   = end
+                    setPendingItinerary(parsed)
+                    setCurrentTripDay(1)
+                } else {
+                    postAIMessage(fullResponse, newMessages, chatId)
+                }
+                setIsLoading(false)
+                return
+            }
 
             // ── FLIGHT SEARCH ─────────────────────────────────────────────────
             if (isFlightSearch || isFlightDateUpdate) {
@@ -509,13 +772,14 @@ const ChatScreen = ({
                 }
 
                 if (pendingHotelSearch) setPendingHotelSearch(null)
-                const date = extractDate(text) || extractDate(englishText)
+                const { checkIn, checkOut } = extractDateRange(text) || extractDateRange(englishText) || {}
                 const hotels = await searchHotels(city)
                 setHotelResults({
                     hotels,
                     city,
-                    checkIn: date,
-                    date: date,
+                    checkIn: checkIn || null,
+                    checkOut: checkOut || null,
+                    date: checkIn || null,
                 })
                 setIsLoading(false)
                 await postAIMessageTranslated(
@@ -556,12 +820,34 @@ const ChatScreen = ({
             })
             setStreamingText('')
 
-            // Check if itinerary generated
-            if (fullResponse.toLowerCase().includes('day 1') && fullResponse.toLowerCase().includes('day 2')) {
+            // Check if itinerary was generated — parse into structured data
+            if (
+                fullResponse.toLowerCase().includes('day 1') &&
+                fullResponse.toLowerCase().includes('day 2')
+            ) {
                 setCurrentTripDay(1)
+                const parsed = parseItineraryText(fullResponse, null)
+                if (parsed && parsed.days?.length > 0) {
+                    // Attach dates from itinerary flow if they exist in pendingItineraryInfo
+                    // NOTE: pendingItineraryInfo was already set to null by the flow,
+                    // so we capture it before that. This handles any edge case fallthrough.
+                    if (parsed.startDate === undefined) {
+                        // Try to extract dates from the response text itself as last resort
+                        const { checkIn, checkOut } = extractDateRange(fullResponse) || {}
+                        if (checkIn) {
+                            parsed.startDate = checkIn
+                            parsed.endDate   = checkOut || null
+                        }
+                    }
+                    setPendingItinerary(parsed)
+                    setIsLoading(false)
+                    return
+                }
+                // Fallback if parsing fails — show plain text
                 setPendingItinerary({
                     title: text,
                     content: fullResponse,
+                    rawText: fullResponse,
                     createdAt: new Date().toISOString(),
                     days: [],
                 })
@@ -919,34 +1205,13 @@ const ChatScreen = ({
                     </div>
                 )}
 
-                {/* Save Itinerary */}
+                {/* Save Itinerary — beautiful structured preview */}
                 {pendingItinerary && (
-                    <div style={{
-                        marginLeft: '36px', background: '#ffffff', border: '1.5px solid #1e6fd9',
-                        borderRadius: '16px', padding: '16px', boxShadow: '0 4px 16px #1e6fd920',
-                    }}>
-                        <p style={{ color: '#0a1628', fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
-                            💾 Save this itinerary to your Itinerary tab?
-                        </p>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <button onClick={handleSaveItinerary} style={{
-                                flex: 1, background: 'linear-gradient(135deg, #1e6fd9, #4a9fe8)',
-                                border: 'none', borderRadius: '10px', padding: '10px', color: '#ffffff',
-                                fontSize: '13px', fontWeight: '700', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                            }}>
-                                <Check size={14} /> Yes, Save It
-                            </button>
-                            <button onClick={() => setPendingItinerary(null)} style={{
-                                flex: 1, background: '#f0f6ff', border: '1px solid #c0d8f0',
-                                borderRadius: '10px', padding: '10px', color: '#5a7a9f',
-                                fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                            }}>
-                                <X size={14} /> Not Now
-                            </button>
-                        </div>
-                    </div>
+                    <ItineraryPreviewCard
+                        itinerary={pendingItinerary}
+                        onSave={handleSaveItinerary}
+                        onDismiss={() => setPendingItinerary(null)}
+                    />
                 )}
 
                 {/* Quick Replies */}

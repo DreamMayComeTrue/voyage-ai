@@ -95,74 +95,136 @@ const MyTripsScreen = ({ trips, setActiveScreen, setTicketData }) => {
             display: 'flex', flexDirection: 'column',
             height: 'calc(100vh - 70px)', background: '#f0f6ff',
         }}>
-            {/* Header */}
-            <div style={{
-                background: '#ffffff', borderBottom: '1px solid #e0ecff',
-                padding: '20px 20px 16px', flexShrink: 0,
-                boxShadow: '0 2px 12px #1e6fd910',
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                    <div>
-                        <h1 style={{ color: '#0a1628', fontSize: '22px', fontWeight: '800', margin: 0 }}>
+            {/* ── Beautiful Header ── */}
+            <div style={{ flexShrink: 0 }}>
+                {/* Gradient image banner */}
+                <div style={{
+                    position: 'relative', height: '130px', overflow: 'hidden',
+                    background: 'linear-gradient(135deg, #1e6fd9 0%, #4a9fe8 50%, #0ea5e9 100%)',
+                }}>
+                    {/* Decorative circles */}
+                    <div style={{
+                        position: 'absolute', top: '-30px', right: '-30px',
+                        width: '160px', height: '160px', borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.08)',
+                    }} />
+                    <div style={{
+                        position: 'absolute', bottom: '-40px', left: '30%',
+                        width: '120px', height: '120px', borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.06)',
+                    }} />
+                    <div style={{
+                        position: 'absolute', top: '10px', left: '-20px',
+                        width: '80px', height: '80px', borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.05)',
+                    }} />
+
+                    {/* Text content */}
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        padding: '20px 20px 16px',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                    }}>
+                        <p style={{
+                            color: 'rgba(255,255,255,0.7)', fontSize: '11px',
+                            fontWeight: '600', textTransform: 'uppercase',
+                            letterSpacing: '1.5px', marginBottom: '4px',
+                        }}>
+                            VoyageAI
+                        </p>
+                        <h1 style={{
+                            color: '#ffffff', fontSize: '26px', fontWeight: '900',
+                            margin: 0, lineHeight: 1.1,
+                            textShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        }}>
                             My Trips
                         </h1>
-                        <p style={{ color: '#5a7a9f', fontSize: '13px', marginTop: '2px' }}>
-                            {trips.length} booking{trips.length !== 1 ? 's' : ''} total
-                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                            <span style={{
+                                background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                                borderRadius: '20px', padding: '3px 10px',
+                                color: '#ffffff', fontSize: '11px', fontWeight: '600',
+                            }}>
+                                {trips.length} booking{trips.length !== 1 ? 's' : ''}
+                            </span>
+                            <span style={{
+                                background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                                borderRadius: '20px', padding: '3px 10px',
+                                color: '#ffffff', fontSize: '11px', fontWeight: '600',
+                            }}>
+                                {upcoming.length} upcoming
+                            </span>
+                        </div>
                     </div>
+
+                    {/* Book Trip button top-right */}
                     <button onClick={() => setActiveScreen('chat')} style={{
-                        background: 'linear-gradient(135deg, #1e6fd9, #4a9fe8)',
-                        border: 'none', borderRadius: '12px', padding: '10px 16px',
-                        color: '#ffffff', fontSize: '13px', fontWeight: '700',
-                        cursor: 'pointer', boxShadow: '0 4px 12px #1e6fd930',
+                        position: 'absolute', top: '16px', right: '16px',
+                        background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)',
+                        border: '1.5px solid rgba(255,255,255,0.4)',
+                        borderRadius: '12px', padding: '8px 14px',
+                        color: '#ffffff', fontSize: '12px', fontWeight: '700',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
                     }}>
                         + Book Trip
                     </button>
                 </div>
 
-                {/* Search */}
+                {/* Search + Tabs panel */}
                 <div style={{
-                    background: '#f0f6ff', border: '1.5px solid #c0d8f0',
-                    borderRadius: '12px', padding: '10px 14px',
-                    display: 'flex', alignItems: 'center', gap: '8px',
+                    background: '#ffffff', borderBottom: '1px solid #e0ecff',
+                    padding: '14px 16px',
+                    boxShadow: '0 2px 12px #1e6fd910',
                 }}>
-                    <Search size={16} color='#8aaac8' />
-                    <input
-                        value={search} onChange={e => setSearch(e.target.value)}
-                        placeholder='Search destination or booking ref...'
-                        style={{
-                            flex: 1, background: 'transparent', border: 'none',
-                            outline: 'none', fontSize: '13px', color: '#0a1628',
-                            fontFamily: 'Inter, sans-serif',
-                        }}
-                    />
-                </div>
+                    {/* Search */}
+                    <div style={{
+                        background: '#f0f6ff', border: '1.5px solid #c0d8f0',
+                        borderRadius: '12px', padding: '10px 14px',
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        marginBottom: '12px',
+                    }}>
+                        <Search size={16} color='#8aaac8' />
+                        <input
+                            value={search} onChange={e => setSearch(e.target.value)}
+                            placeholder='Search destination or booking ref...'
+                            style={{
+                                flex: 1, background: 'transparent', border: 'none',
+                                outline: 'none', fontSize: '13px', color: '#0a1628',
+                                fontFamily: 'Inter, sans-serif',
+                            }}
+                        />
+                    </div>
 
-                {/* Tabs */}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-                    {[
-                        { key: 'upcoming', label: 'Upcoming', count: upcoming.length },
-                        { key: 'past',     label: 'Past',     count: past.length },
-                    ].map(tab => (
-                        <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-                            flex: 1,
-                            background: activeTab === tab.key ? 'linear-gradient(135deg, #1e6fd9, #4a9fe8)' : '#f0f6ff',
-                            border: activeTab === tab.key ? 'none' : '1.5px solid #c0d8f0',
-                            borderRadius: '10px', padding: '8px 12px',
-                            color: activeTab === tab.key ? '#ffffff' : '#5a7a9f',
-                            fontSize: '13px', fontWeight: '700', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                            boxShadow: activeTab === tab.key ? '0 4px 12px #1e6fd930' : 'none',
-                        }}>
-                            {tab.label}
-                            <span style={{
-                                background: activeTab === tab.key ? 'rgba(255,255,255,0.25)' : '#e0ecff',
-                                color: activeTab === tab.key ? '#ffffff' : '#1e6fd9',
-                                borderRadius: '20px', padding: '1px 7px',
-                                fontSize: '11px', fontWeight: '800',
-                            }}>{tab.count}</span>
-                        </button>
-                    ))}
+                    {/* Tabs */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        {[
+                            { key: 'upcoming', label: 'Upcoming', count: upcoming.length, icon: '🗓️' },
+                            { key: 'past',     label: 'Past',     count: past.length,     icon: '📁' },
+                        ].map(tab => (
+                            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                                flex: 1,
+                                background: activeTab === tab.key
+                                    ? 'linear-gradient(135deg, #1e6fd9, #4a9fe8)'
+                                    : '#f0f6ff',
+                                border: activeTab === tab.key ? 'none' : '1.5px solid #c0d8f0',
+                                borderRadius: '12px', padding: '10px 12px',
+                                color: activeTab === tab.key ? '#ffffff' : '#5a7a9f',
+                                fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                boxShadow: activeTab === tab.key ? '0 4px 12px #1e6fd930' : 'none',
+                                transition: 'all 0.15s ease',
+                            }}>
+                                <span>{tab.icon}</span>
+                                {tab.label}
+                                <span style={{
+                                    background: activeTab === tab.key ? 'rgba(255,255,255,0.25)' : '#e0ecff',
+                                    color: activeTab === tab.key ? '#ffffff' : '#1e6fd9',
+                                    borderRadius: '20px', padding: '1px 8px',
+                                    fontSize: '11px', fontWeight: '800',
+                                }}>{tab.count}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

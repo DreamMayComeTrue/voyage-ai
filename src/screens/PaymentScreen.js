@@ -44,18 +44,43 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
     const [passengerLabel, setPassengerLabel] = useState('')
     const [cardLabel, setCardLabel]           = useState('')
 
-    const isHotel = bookingData?.type === 'hotel'
-    const flight  = bookingData?.flight || {}
-    const hotel   = bookingData?.hotel  || {}
-    const date    = bookingData?.date   || ''
-    const price   = isHotel
+    const isHotel   = bookingData?.type === 'hotel'
+    const flight    = bookingData?.flight || {}
+    const hotel     = bookingData?.hotel  || {}
+    const date      = bookingData?.date   || ''
+    const checkIn   = bookingData?.checkIn  || null
+    const checkOut  = bookingData?.checkOut || null
+
+    // Calculate number of nights for hotel
+    const nights = (() => {
+        if (!isHotel || !checkIn || !checkOut) return 1
+        try {
+            const d1 = new Date(checkIn);  d1.setHours(0,0,0,0)
+            const d2 = new Date(checkOut); d2.setHours(0,0,0,0)
+            const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24))
+            return diff > 0 ? diff : 1
+        } catch { return 1 }
+    })()
+
+    // Base price per night/flight
+    const pricePerUnit = isHotel
         ? (hotel.price || 'MYR 380').split('/')[0].trim()
         : (flight.price || 'MYR 580')
 
-    const totalPrice = (() => {
-        const base = parseInt((price || '0').replace(/[^0-9]/g, '')) || 0
-        return `MYR ${(base + 55).toLocaleString()}`
-    })()
+    const priceNum = parseInt((pricePerUnit || '0').replace(/[^0-9]/g, '')) || 0
+
+    // For hotel: multiply by nights
+    const baseTotal = isHotel ? priceNum * nights : priceNum
+    const price     = `MYR ${baseTotal.toLocaleString()}`
+
+    const totalPrice = `MYR ${(baseTotal + 55).toLocaleString()}`
+
+    // Format date for display
+    const formatDateShort = (d) => {
+        if (!d) return ''
+        try { return new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }) }
+        catch { return d }
+    }
 
     const formatTime = (dateStr) => {
         if (!dateStr || dateStr === 'TBD') return 'TBD'
@@ -255,7 +280,11 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
                                 {isHotel ? hotel.name : flight.airline}
                             </p>
                             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
-                                {isHotel ? hotel.address : `${flight.flightNumber} · ${date}`}
+                                {isHotel
+                                    ? (checkIn && checkOut
+                                        ? `${formatDateShort(checkIn)} → ${formatDateShort(checkOut)} · ${nights} night${nights > 1 ? 's' : ''}`
+                                        : hotel.address)
+                                    : `${flight.flightNumber} · ${date}`}
                             </p>
                         </div>
                         <div style={{
@@ -610,7 +639,9 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
                         🧾 Price Summary
                     </p>
                     {[
-                        { label: 'Base fare', value: price },
+                        isHotel
+                            ? { label: `Room (${nights} night${nights > 1 ? 's' : ''} × ${pricePerUnit})`, value: price }
+                            : { label: 'Base fare', value: price },
                         { label: 'Taxes & fees', value: 'MYR 45' },
                         { label: 'Service fee', value: 'MYR 10' },
                     ].map((row, i) => (
