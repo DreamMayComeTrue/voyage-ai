@@ -200,6 +200,7 @@ const ChatScreen = ({
     // { destination: null, days: null, startDate: null, endDate: null, step: 'destination'|'days'|'dates'|'validate' }
 
     const [userLanguage, setUserLanguage] = useState('en')
+    const [speakingMsgId, setSpeakingMsgId] = useState(null)
 
     const messagesEndRef = useRef(null)
     const recognitionRef = useRef(null)
@@ -299,11 +300,50 @@ const ChatScreen = ({
         }
     }
 
-    const speakText = (text) => {
+    const LANG_LOCALE = {
+        en: 'en-US', zh: 'zh-CN', ms: 'ms-MY', ja: 'ja-JP',
+        ko: 'ko-KR', th: 'th-TH', fr: 'fr-FR', es: 'es-ES',
+        de: 'de-DE', ar: 'ar-SA', hi: 'hi-IN', id: 'id-ID',
+        vi: 'vi-VN', pt: 'pt-PT', ru: 'ru-RU',
+    }
+
+    const speakText = (text, msgId) => {
+        // If already speaking this message — stop it
+        if (speakingMsgId === msgId) {
+            window.speechSynthesis.cancel()
+            setSpeakingMsgId(null)
+            return
+        }
+
+        if (!window.speechSynthesis || !text?.trim()) return
         window.speechSynthesis.cancel()
-        const u = new window.SpeechSynthesisUtterance(text.replace(/[*_#•]/g, '').trim())
+
+        const cleanText = text.replace(/[*_#•]/g, '').trim()
+        const locale = LANG_LOCALE[userLanguage] || 'en-US'
+
+        const u = new window.SpeechSynthesisUtterance(cleanText)
+        u.lang = locale
         u.rate = 0.95
-        window.speechSynthesis.speak(u)
+        u.onend   = () => setSpeakingMsgId(null)
+        u.onerror = () => setSpeakingMsgId(null)
+
+        const doSpeak = () => {
+            const voices = window.speechSynthesis.getVoices()
+            const voice = voices.find(v => v.lang === locale)
+                || voices.find(v => v.lang.startsWith(userLanguage))
+            if (voice) u.voice = voice
+            setSpeakingMsgId(msgId)
+            window.speechSynthesis.speak(u)
+        }
+
+        if (window.speechSynthesis.getVoices().length > 0) {
+            doSpeak()
+        } else {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.onvoiceschanged = null
+                doSpeak()
+            }
+        }
     }
 
     // ── Conversation Storage ─────────────────────────────────────────────────
@@ -1067,11 +1107,13 @@ const ChatScreen = ({
                         </div>
                         {msg.role === 'assistant' && (
                             <div style={{ paddingLeft: '36px', marginTop: '4px' }}>
-                                <button onClick={() => speakText(msg.content)} style={{
-                                    background: 'none', border: 'none', color: '#8aaac8', fontSize: '11px',
-                                    cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', gap: '4px',
+                                <button onClick={() => speakText(msg.content, msg.id)} style={{
+                                    background: 'none', border: 'none',
+                                    color: speakingMsgId === msg.id ? '#1e6fd9' : '#8aaac8',
+                                    fontSize: '11px', cursor: 'pointer',
+                                    padding: '2px 4px', display: 'flex', alignItems: 'center', gap: '4px',
                                 }}>
-                                    🔊 Listen
+                                    {speakingMsgId === msg.id ? '⏹ Stop' : '🔊 Listen'}
                                 </button>
                             </div>
                         )}

@@ -282,7 +282,7 @@ const ItineraryScreen = ({ itineraries, setActiveScreen }) => {
                                 color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: '600',
                                 textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px',
                             }}>
-                                🗺️ VoyageAI
+                                VoyageAI
                             </p>
                             <h1 style={{
                                 color: '#ffffff', fontSize: '26px', fontWeight: '900',

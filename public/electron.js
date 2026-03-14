@@ -16,14 +16,14 @@ function createWindow() {
         console.log('[Permission requested]:', permission)
         // Allow all media/mic permissions
         const allowed = [
-            'microphone', 'media', 'audioCapture',
+            'microphone', 'media', 'audioCapture','speech-synthesis',
             'notifications', 'mediaKeySystem', 'geolocation'
         ]
         callback(allowed.includes(permission))
     })
 
     session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
-        const allowed = ['microphone', 'media', 'audioCapture']
+        const allowed = ['microphone', 'media', 'audioCapture', 'speech-synthesis']
         const result = allowed.includes(permission)
         console.log('[Permission check]:', permission, '→', result)
         return result

@@ -78,33 +78,52 @@ const LANG_LOCALE = {
     vi: 'vi-VN', pt: 'pt-PT', ru: 'ru-RU',
 }
 
-// ── Speak with correct language voice ────────────────────────────────────
-const speak = (text, langCode = 'en') => {
-    if (!window.speechSynthesis || !text?.trim()) return
-    window.speechSynthesis.cancel()
+// ── Speak via Groq TTS (bypasses Electron speechSynthesis issues) ─────────
+// Same approach as using Groq Whisper for mic — pure HTTP fetch + Audio()
+const speak = async (text, langCode = 'en') => {
+    if (!text?.trim()) return
+    const cleanText = text.replace(/[*_#•🎤]/g, '').trim()
 
-    const locale = LANG_LOCALE[langCode] || langCode
-    const u = new window.SpeechSynthesisUtterance(text.replace(/[*_#•]/g, '').trim())
-    u.lang = locale
-    u.rate = 0.9
+    try {
+        const GROQ_KEY = process.env.REACT_APP_GROQ_API_KEY
+        if (!GROQ_KEY) throw new Error('No Groq key')
 
-    const setVoiceAndSpeak = () => {
-        const voices = window.speechSynthesis.getVoices()
-        // Try exact locale match first, then language prefix match
-        const voice = voices.find(v => v.lang === locale)
-            || voices.find(v => v.lang.startsWith(langCode))
-        if (voice) u.voice = voice
-        window.speechSynthesis.speak(u)
-    }
+        const response = await fetch('https://api.groq.com/openai/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'playai-tts',
+                voice: 'Fritz-PlayAI',   // works for all languages — multilingual voice
+                input: cleanText,
+                response_format: 'mp3',
+            }),
+        })
 
-    // Voices may not be loaded yet on first call
-    if (window.speechSynthesis.getVoices().length > 0) {
-        setVoiceAndSpeak()
-    } else {
-        window.speechSynthesis.onvoiceschanged = () => {
-            setVoiceAndSpeak()
-            window.speechSynthesis.onvoiceschanged = null
+        if (!response.ok) {
+            const err = await response.text()
+            console.error('[TTS] Groq error:', err)
+            throw new Error(err)
         }
+
+        const blob = await response.blob()
+        const url  = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        audio.play()
+        audio.onended = () => URL.revokeObjectURL(url)
+
+    } catch (err) {
+        console.warn('[TTS] Groq failed, trying speechSynthesis:', err.message)
+        // Fallback: browser speechSynthesis
+        if (!window.speechSynthesis) return
+        window.speechSynthesis.cancel()
+        const locale = LANG_LOCALE[langCode] || langCode
+        const u = new window.SpeechSynthesisUtterance(cleanText)
+        u.lang = locale
+        u.rate = 0.9
+        window.speechSynthesis.speak(u)
     }
 }
 
@@ -281,7 +300,7 @@ const TranslateScreen = () => {
                             fontWeight: '600', textTransform: 'uppercase',
                             letterSpacing: '1.5px', marginBottom: '4px',
                         }}>
-                            ✈️ VoyageAI
+                            VoyageAI
                         </p>
                         <h1 style={{
                             color: '#ffffff', fontSize: '26px', fontWeight: '900',
