@@ -40,7 +40,17 @@ VoyageAI is a full-featured AI travel assistant desktop app built as a hackathon
 
 ## 🖥️ Screenshots
 
-> *Coming soon — add your screenshots here*
+![Home Screen](screenshots/screenshot-home.png)
+![Reminder Screen](screenshots/screenshot-home-reminder.png)
+![Chat Screen](screenshots/screenshot-agent-1.png)
+![Chat Screen](screenshots/screenshot-agent-2.png)
+![AR Map Screen](screenshots/screenshot-armap.png)
+![AR Map Screen](screenshots/screenshot-armap-itinerary.png)
+![Explore Screen](screenshots/screenshot-explore.png)
+![Translate Screen](screenshots/screenshot-translate.png)
+
+
+
 
 ---
 
@@ -432,7 +442,7 @@ This project is licensed under the MIT Licence — see the [LICENSE](LICENSE) fi
 
 <div align="center">
 
-**Built with ❤️ for the hackathon**
+**Built With Spirit For The 4th China-ASEAN **
 
 *VoyageAI — Where every journey begins with a conversation.*
 
