@@ -55,6 +55,9 @@ function App() {
     const [itineraries, setItineraries]   = useState([])
     const [trips, setTrips]               = useState([])
     const [language, setLanguage]         = useState('en')
+    const [currency, setCurrency]         = useState(() => {
+        try { return JSON.parse(localStorage.getItem('voyageai_currency') || '"MYR"') } catch { return 'MYR' }
+    })
     const [chatPrompt, setChatPrompt]     = useState('')
     const [bookingData, setBookingData]   = useState(null)
     const [ticketData, setTicketData]     = useState(null)
@@ -78,6 +81,7 @@ function App() {
                     <PaymentScreen
                         setActiveScreen={setActiveScreen}
                         bookingData={bookingData}
+                        currency={currency}
                         onPaymentComplete={(data) => {
                             if (data?.type === 'guide') {
                                 // Guide booking — save to bookedGuides, go back to guide page
@@ -136,6 +140,7 @@ function App() {
                         initialPrompt={chatPrompt}
                         setChatPrompt={setChatPrompt}
                         setBookingData={setBookingData}
+                        currency={currency}
                     />
                 )
             case 'itinerary':
@@ -169,6 +174,11 @@ function App() {
                         setActiveScreen={setActiveScreen}
                         language={language}
                         setLanguage={setLanguage}
+                        currency={currency}
+                        setCurrency={(c) => {
+                            setCurrency(c)
+                            try { localStorage.setItem('voyageai_currency', JSON.stringify(c)) } catch {}
+                        }}
                         trips={trips}
                         itineraries={itineraries}
                     />

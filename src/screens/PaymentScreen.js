@@ -28,7 +28,16 @@ const cardBrand = (num) => {
     return { name: 'Card', color: '#1e6fd9', bg: '#e3f2fd' }
 }
 
-const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
+const CURRENCY_SYMBOLS = {
+    MYR: 'MYR', USD: 'USD', SGD: 'SGD',
+    JPY: 'JPY', EUR: 'EUR', GBP: 'GBP', AUD: 'AUD',
+}
+
+const CURRENCY_RATES = {
+    MYR: 1, USD: 0.22, SGD: 0.30, JPY: 33, EUR: 0.20, GBP: 0.17, AUD: 0.34,
+}
+
+const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, currency = 'MYR' }) => {
     const [step, setStep] = useState('details')
     const [form, setForm] = useState({
         name: '', email: '', cardNumber: '',
@@ -75,9 +84,14 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
     const baseTotal = isGuide
         ? parseInt((bookingData?.totalPrice || '0').replace(/[^0-9]/g, '')) || (guide.price * (bookingData?.days || 1))
         : isHotel ? priceNum * nights : priceNum
-    const price     = `MYR ${baseTotal.toLocaleString()}`
+    const convertPrice = (amountMYR) => {
+        const rate = CURRENCY_RATES[currency] || 1
+        const sym  = CURRENCY_SYMBOLS[currency] || 'MYR'
+        return `${sym} ${Math.round(amountMYR * rate).toLocaleString()}`
+    }
 
-    const totalPrice = `MYR ${(baseTotal + (isGuide ? 30 : 55)).toLocaleString()}`
+    const price      = convertPrice(baseTotal)
+    const totalPrice = convertPrice(baseTotal + (isGuide ? 30 : 55))
 
     // Format date for display
     const formatDateShort = (d) => {

@@ -32,7 +32,7 @@ const INTERESTS     = ['Food', 'Culture', 'Adventure', 'Beaches', 'Shopping', 'N
 const loadPref  = (key, def) => { try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def } catch { return def } }
 const savePref  = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)) } catch {} }
 
-const MeScreen = ({ setActiveScreen, language, setLanguage, trips = [], itineraries = [] }) => {
+const MeScreen = ({ setActiveScreen, language, setLanguage, currency = 'MYR', setCurrency, trips = [], itineraries = [] }) => {
     // Profile
     const [name,  setName]  = useState(() => loadPref('voyageai_name',  'Traveller'))
     const [email, setEmail] = useState(() => loadPref('voyageai_email', ''))
@@ -40,19 +40,21 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, trips = [], itinerar
     const [tempName,  setTempName]  = useState('')
     const [tempEmail, setTempEmail] = useState('')
 
-    // Preferences
-    const [currency,     setCurrency]     = useState(() => loadPref('voyageai_currency',     'MYR'))
-    const [travelStyle,  setTravelStyle]  = useState(() => loadPref('voyageai_style',        'Mid-range'))
-    const [interests,    setInterests]    = useState(() => loadPref('voyageai_interests',     ['Food', 'Culture']))
-    const [darkMode,     setDarkMode]     = useState(() => loadPref('voyageai_dark',         false))
-    const [notifications,setNotifications]= useState(() => loadPref('voyageai_notifs',       true))
-    const [flightAlerts, setFlightAlerts] = useState(() => loadPref('voyageai_flight_alerts',true))
+    // Preferences (currency comes from props now — shared across app)
+    const [travelStyle,   setTravelStyle]   = useState(() => loadPref('voyageai_style',         'Mid-range'))
+    const [interests,     setInterests]     = useState(() => loadPref('voyageai_interests',      ['Food', 'Culture']))
+    const [darkMode,      setDarkMode]      = useState(() => loadPref('voyageai_dark',           false))
+    const [notifications, setNotifications] = useState(() => loadPref('voyageai_notifs',         true))
+    const [flightAlerts,  setFlightAlerts]  = useState(() => loadPref('voyageai_flight_alerts',  true))
+
+    // Confirm dialog state
+    const [showConfirm, setShowConfirm]   = useState(false)
 
     // UI
-    const [showLangPicker, setShowLangPicker]     = useState(false)
-    const [showCurrPicker, setShowCurrPicker]     = useState(false)
-    const [showStylePicker,setShowStylePicker]    = useState(false)
-    const [showInterests,  setShowInterests]      = useState(false)
+    const [showLangPicker,  setShowLangPicker]  = useState(false)
+    const [showCurrPicker,  setShowCurrPicker]  = useState(false)
+    const [showStylePicker, setShowStylePicker] = useState(false)
+    const [showInterests,   setShowInterests]   = useState(false)
 
     const currLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0]
     const currCurr = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0]
@@ -78,12 +80,59 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, trips = [], itinerar
         savePref(key, !val)
     }
 
+    const handleClearConversations = () => {
+        try {
+            localStorage.removeItem('voyageai_conversations')
+        } catch {}
+        setShowConfirm(false)
+    }
+
     return (
         <div style={{
             display: 'flex', flexDirection: 'column',
             height: 'calc(100vh - 70px)', background: '#f0f6ff',
-            overflowY: 'auto',
+            overflowY: 'auto', position: 'relative',
         }}>
+            {/* ── Confirm Dialog ── */}
+            {showConfirm && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 999,
+                    background: 'rgba(10,22,40,0.5)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '24px',
+                }}>
+                    <div style={{
+                        background: '#ffffff', borderRadius: '20px',
+                        padding: '24px', width: '100%', maxWidth: '320px',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                    }}>
+                        <div style={{
+                            width: '48px', height: '48px', borderRadius: '50%',
+                            background: '#fef2f2', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', margin: '0 auto 14px', fontSize: '22px',
+                        }}>🗑️</div>
+                        <p style={{ color: '#0a1628', fontSize: '16px', fontWeight: '800', textAlign: 'center', marginBottom: '8px' }}>
+                            Clear Conversations?
+                        </p>
+                        <p style={{ color: '#5a7a9f', fontSize: '13px', textAlign: 'center', lineHeight: '1.5', marginBottom: '20px' }}>
+                            This will permanently delete all your chat history. This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={() => setShowConfirm(false)} style={{
+                                flex: 1, background: '#f0f6ff', border: '1.5px solid #c0d8f0',
+                                borderRadius: '12px', padding: '12px',
+                                color: '#5a7a9f', fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                            }}>Cancel</button>
+                            <button onClick={handleClearConversations} style={{
+                                flex: 1, background: 'linear-gradient(135deg, #dc2626, #ef4444)',
+                                border: 'none', borderRadius: '12px', padding: '12px',
+                                color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                                boxShadow: '0 4px 12px #dc262630',
+                            }}>Yes, Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* ── Header ── */}
             <div style={{ flexShrink: 0 }}>
                 <div style={{
@@ -110,8 +159,7 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, trips = [], itinerar
                             color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: '600',
                             textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px',
                         }}>VoyageAI</p>
-                        <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '900', margin: 0,lineHeight: 1.1 }}>
-                            My Profile</h1>
+                        <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '900', margin: 0 ,lineHeight:1.1}}>My Profile</h1>
                         <div style={{ display: 'flex', gap: '8px', marginTop: '5px' }}>
                             <span style={{
                                 background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
@@ -267,7 +315,7 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, trips = [], itinerar
                         <PickerGrid
                             items={CURRENCIES.map(c => ({ value: c.code, label: c.code, prefix: c.symbol }))}
                             selected={currency}
-                            onSelect={code => { setCurrency(code); savePref('voyageai_currency', code); setShowCurrPicker(false) }}
+                            onSelect={code => { setCurrency(code); setShowCurrPicker(false) }}
                         />
                     )}
                 </SettingsCard>
@@ -344,9 +392,7 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, trips = [], itinerar
                     <Divider />
                     <SettingsRow label='App Version' value='v1.0.0 (Hackathon)' />
                     <Divider />
-                    <SettingsRow label='Clear Conversations' value='' onPress={() => {
-                        try { localStorage.removeItem('voyageai_conversations'); alert('Conversations cleared!') } catch {}
-                    }} danger />
+                    <SettingsRow label='Clear Conversations' value='' onPress={() => setShowConfirm(true)} danger />
                 </SettingsCard>
 
                 <SectionHeader title='ℹ️ About' />
