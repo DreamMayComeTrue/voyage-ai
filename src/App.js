@@ -19,15 +19,13 @@ const buildTrip = (data) => {
     const flight  = data?.flight || {}
     const hotel   = data?.hotel  || {}
 
-    // Normalise destination to uppercase IATA or title case city
-    const rawDest = isHotel
-        ? (data?.city || hotel.address?.split(',')[0] || 'Unknown')
+    // Destination: city name from flight destination or hotel city
+    const destination = isHotel
+        ? (data?.city || hotel.name?.split(' ').pop() || 'Unknown')
         : (data?.destination || flight.destination || 'Unknown')
-    const destination = rawDest.charAt(0).toUpperCase() + rawDest.slice(1).toLowerCase()
 
-    // Date: use check-in date for hotels, flight date for flights
-    // Never fall back to today — use null so "TBD" shows instead
-    const date = data?.checkIn || data?.date || null
+    // Date: flight date or today for hotel
+    const date = data?.date || new Date().toISOString().split('T')[0]
 
     // Friendly date display
     const dateDisplay = (() => {
@@ -60,6 +58,7 @@ function App() {
     const [chatPrompt, setChatPrompt]     = useState('')
     const [bookingData, setBookingData]   = useState(null)
     const [ticketData, setTicketData]     = useState(null)
+    const [bookedGuides, setBookedGuides] = useState([])  // [{guideId, days, ref, paidAt}]
 
     const saveItinerary = (itinerary) => {
         setItineraries(prev => [...prev, itinerary])
@@ -80,9 +79,21 @@ function App() {
                         setActiveScreen={setActiveScreen}
                         bookingData={bookingData}
                         onPaymentComplete={(data) => {
-                            const trip = saveTrip(data)
-                            setTicketData({ ...data, ...trip })
-                            setActiveScreen('eticket')
+                            if (data?.type === 'guide') {
+                                // Guide booking — save to bookedGuides, go back to guide page
+                                setBookedGuides(prev => [...prev, {
+                                    guideId: data.guide?.id,
+                                    days: data.days,
+                                    ref: data.bookingRef,
+                                    paidAt: data.paidAt,
+                                }])
+                                setActiveScreen('guide')
+                            } else {
+                                // Flight/hotel booking — show e-ticket
+                                const trip = saveTrip(data)
+                                setTicketData({ ...data, ...trip })
+                                setActiveScreen('eticket')
+                            }
                         }}
                     />
                 </div>
@@ -145,15 +156,21 @@ function App() {
                     />
                 )
             case 'explore':
-                return <ExploreScreen setActiveScreen={setActiveScreen} />
+                return <ExploreScreen setActiveScreen={setActiveScreen} setChatPrompt={setChatPrompt} />
             case 'guide':
-                return <GuideScreen setActiveScreen={setActiveScreen} />
+                return <GuideScreen
+                    setActiveScreen={setActiveScreen}
+                    setBookingData={setBookingData}
+                    bookedGuides={bookedGuides}
+                />
             case 'me':
                 return (
                     <MeScreen
                         setActiveScreen={setActiveScreen}
                         language={language}
                         setLanguage={setLanguage}
+                        trips={trips}
+                        itineraries={itineraries}
                     />
                 )
             default:

@@ -4,7 +4,7 @@ import {
     MessageCircle, Map, Globe,
     Plane, Hotel, ChevronRight,
     Search, BookOpen, User, Navigation,
-    Bell, Clock, AlertCircle
+    Bell, Clock, AlertCircle, Briefcase
 } from 'lucide-react'
 
 // ── Destination config: emoji + Unsplash image + packing tips ─────────────
@@ -241,7 +241,7 @@ const HomeScreen = ({ setActiveScreen, itineraries, trips }) => {
         { id: 'explore',   icon: Search,        title: 'Explore',   desc: 'Trending destinations',     color: '#0ea5e9', iconBg: '#e0f4ff' },
         { id: 'itinerary', icon: Map,           title: 'Itinerary', desc: 'View your saved plans',     color: '#7c3aed', iconBg: '#ede9fe' },
         { id: 'translate', icon: Globe,         title: 'Translate', desc: 'Speak any language',        color: '#059669', iconBg: '#d1fae5' },
-        { id: 'mytrips',   icon: Plane,         title: 'My Trips',  desc: 'Your bookings & tickets',   color: '#d97706', iconBg: '#fef3c7' },
+        { id: 'mytrips',   icon: Briefcase,         title: 'My Trips',  desc: 'Your bookings & tickets',   color: '#d97706', iconBg: '#fef3c7' },
         { id: 'guide',     icon: BookOpen,      title: 'Guide',     desc: 'How to use VoyageAI',       color: '#db2777', iconBg: '#fce7f3' },
     ]
 

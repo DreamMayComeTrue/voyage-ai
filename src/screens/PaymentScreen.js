@@ -45,6 +45,8 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
     const [cardLabel, setCardLabel]           = useState('')
 
     const isHotel   = bookingData?.type === 'hotel'
+    const isGuide   = bookingData?.type === 'guide'
+    const guide     = bookingData?.guide || {}
     const flight    = bookingData?.flight || {}
     const hotel     = bookingData?.hotel  || {}
     const date      = bookingData?.date   || ''
@@ -69,11 +71,13 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
 
     const priceNum = parseInt((pricePerUnit || '0').replace(/[^0-9]/g, '')) || 0
 
-    // For hotel: multiply by nights
-    const baseTotal = isHotel ? priceNum * nights : priceNum
+    // For hotel: multiply by nights. For guide: use pre-calculated total from GuideScreen
+    const baseTotal = isGuide
+        ? parseInt((bookingData?.totalPrice || '0').replace(/[^0-9]/g, '')) || (guide.price * (bookingData?.days || 1))
+        : isHotel ? priceNum * nights : priceNum
     const price     = `MYR ${baseTotal.toLocaleString()}`
 
-    const totalPrice = `MYR ${(baseTotal + 55).toLocaleString()}`
+    const totalPrice = `MYR ${(baseTotal + (isGuide ? 30 : 55)).toLocaleString()}`
 
     // Format date for display
     const formatDateShort = (d) => {
@@ -273,18 +277,20 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
                             background: 'rgba(255,255,255,0.2)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
                         }}>
-                            {isHotel ? '🏨' : '✈️'}
+                            {isGuide ? '🧑‍🦯' : isHotel ? '🏨' : '✈️'}
                         </div>
                         <div style={{ flex: 1 }}>
                             <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '700' }}>
-                                {isHotel ? hotel.name : flight.airline}
+                                {isGuide ? guide.name : isHotel ? hotel.name : flight.airline}
                             </p>
                             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
-                                {isHotel
-                                    ? (checkIn && checkOut
-                                        ? `${formatDateShort(checkIn)} → ${formatDateShort(checkOut)} · ${nights} night${nights > 1 ? 's' : ''}`
-                                        : hotel.address)
-                                    : `${flight.flightNumber} · ${date}`}
+                                {isGuide
+                                    ? `${guide.specialty} · ${guide.city} · ${bookingData?.days} day${bookingData?.days > 1 ? 's' : ''}`
+                                    : isHotel
+                                        ? (checkIn && checkOut
+                                            ? `${formatDateShort(checkIn)} → ${formatDateShort(checkOut)} · ${nights} night${nights > 1 ? 's' : ''}`
+                                            : hotel.address)
+                                        : `${flight.flightNumber} · ${date}`}
                             </p>
                         </div>
                         <div style={{
@@ -639,9 +645,11 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete }) => {
                         🧾 Price Summary
                     </p>
                     {[
-                        isHotel
-                            ? { label: `Room (${nights} night${nights > 1 ? 's' : ''} × ${pricePerUnit})`, value: price }
-                            : { label: 'Base fare', value: price },
+                        isGuide
+                            ? { label: `Guide fee (${bookingData?.days}d × RM ${guide.price})`, value: price }
+                            : isHotel
+                                ? { label: `Room (${nights} night${nights > 1 ? 's' : ''} × ${pricePerUnit})`, value: price }
+                                : { label: 'Base fare', value: price },
                         { label: 'Taxes & fees', value: 'MYR 45' },
                         { label: 'Service fee', value: 'MYR 10' },
                     ].map((row, i) => (
