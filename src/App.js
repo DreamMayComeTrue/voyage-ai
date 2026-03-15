@@ -7,6 +7,7 @@ import MyTripsScreen from './screens/MyTripsScreen'
 import ExploreScreen from './screens/ExploreScreen'
 import GuideScreen from './screens/GuideScreen'
 import MeScreen from './screens/MeScreen'
+import ARMapScreen from './screens/ARMapScreen'
 import PaymentScreen from './screens/PaymentScreen'
 import ETicketScreen from './screens/ETicketScreen'
 import BottomNav from './components/BottomNav'
@@ -168,6 +169,14 @@ function App() {
                     setBookingData={setBookingData}
                     bookedGuides={bookedGuides}
                 />
+            case 'armap':
+                return (
+                    <ARMapScreen
+                        trips={trips}
+                        itineraries={itineraries}
+                        setActiveScreen={setActiveScreen}
+                    />
+                )
             case 'me':
                 return (
                     <MeScreen
@@ -200,7 +209,7 @@ function App() {
                 {renderScreen()}
             </div>
             <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
-            {activeScreen !== 'chat' && (
+            {activeScreen !== 'chat' && activeScreen !== 'armap' && (
                 <FloatingAIButton
                     setActiveScreen={setActiveScreen}
                     setChatPrompt={setChatPrompt}

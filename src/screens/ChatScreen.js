@@ -170,6 +170,7 @@ const ChatScreen = ({
                         initialPrompt,
                         setChatPrompt,
                         setBookingData,
+                        currency = 'MYR',
                     }) => {
 
     const WELCOME = {
@@ -1175,6 +1176,7 @@ const ChatScreen = ({
                             <FlightCard
                                 key={i}
                                 flight={flight}
+                                currency={currency}
                                 onBook={() => {
                                     // Go to payment screen with flight data
                                     if (setBookingData) {
@@ -1204,6 +1206,7 @@ const ChatScreen = ({
                             <HotelCard
                                 key={i}
                                 hotel={hotel}
+                                currency={currency}
                                 onBook={() => {
                                     if (setBookingData) {
                                         setBookingData({

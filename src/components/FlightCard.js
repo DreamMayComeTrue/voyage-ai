@@ -1,8 +1,19 @@
 import React, { useState } from 'react'
 import { Plane, Clock, ExternalLink } from 'lucide-react'
 
-const FlightCard = ({ flight, onBook }) => {
+const FlightCard = ({ flight, onBook, currency = 'MYR' }) => {
     const [showOptions, setShowOptions] = useState(false)
+
+    const CURRENCY_RATES = {
+        MYR: 1, USD: 0.22, SGD: 0.30, JPY: 33, EUR: 0.20, GBP: 0.17, AUD: 0.34,
+    }
+
+    const convertPrice = (priceStr, currency) => {
+        if (!currency || currency === 'MYR') return priceStr
+        const num = parseInt((priceStr || '0').replace(/[^0-9]/g, '')) || 0
+        const rate = CURRENCY_RATES[currency] || 1
+        return `${currency} ${Math.round(num * rate).toLocaleString()}`
+    }
 
     const formatTime = (dateStr) => {
         if (!dateStr || dateStr === 'TBD') return 'TBD'
@@ -80,7 +91,7 @@ const FlightCard = ({ flight, onBook }) => {
                             fontSize: '13px',
                             fontWeight: '700',
                         }}>
-                            {flight.price}
+                            {convertPrice(flight.price, currency)}
                         </p>
                     </div>
                 )}

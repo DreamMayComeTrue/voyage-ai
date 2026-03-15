@@ -1,10 +1,10 @@
 import React from 'react'
 import VoyageLogo from '../components/VoyageLogo'
 import {
-    MessageCircle, Map, Globe,
+    MessageCircle, Map, Globe, Briefcase,
     Plane, Hotel, ChevronRight,
     Search, BookOpen, User, Navigation,
-    Bell, Clock, AlertCircle, Briefcase
+    Bell, Clock, AlertCircle
 } from 'lucide-react'
 
 // ── Destination config: emoji + Unsplash image + packing tips ─────────────
@@ -296,7 +296,7 @@ const HomeScreen = ({ setActiveScreen, itineraries, trips }) => {
                     {[
                         { icon: Plane,      label: 'Flights',   color: '#1e6fd9', bg: '#d0e8ff', screen: 'chat' },
                         { icon: Hotel,      label: 'Hotels',    color: '#7c3aed', bg: '#ede9fe', screen: 'chat' },
-                        { icon: Navigation, label: 'AR Maps',   color: '#059669', bg: '#d1fae5', screen: 'itinerary' },
+                        { icon: Navigation, label: 'AR Maps',   color: '#059669', bg: '#d1fae5', screen: 'armap' },
                         { icon: Globe,      label: 'Translate', color: '#d97706', bg: '#fef3c7', screen: 'translate' },
                     ].map((item, i) => {
                         const Icon = item.icon

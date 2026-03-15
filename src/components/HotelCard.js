@@ -1,8 +1,19 @@
 import React, { useState } from 'react'
 import { Star, Wifi, ExternalLink } from 'lucide-react'
 
-const HotelCard = ({ hotel, onBook }) => {
+const HotelCard = ({ hotel, onBook, currency = 'MYR'}) => {
     const [showOptions, setShowOptions] = useState(false)
+
+    const CURRENCY_RATES = {
+        MYR: 1, USD: 0.22, SGD: 0.30, JPY: 33, EUR: 0.20, GBP: 0.17, AUD: 0.34,
+    }
+
+    const convertPrice = (priceStr, currency) => {
+        if (!currency || currency === 'MYR') return priceStr
+        const num = parseInt((priceStr || '0').replace(/[^0-9]/g, '')) || 0
+        const rate = CURRENCY_RATES[currency] || 1
+        return `${currency} ${Math.round(num * rate).toLocaleString()}`
+    }
 
     return (
         <div style={{
@@ -101,7 +112,7 @@ const HotelCard = ({ hotel, onBook }) => {
                         fontSize: '16px',
                         fontWeight: '800',
                     }}>
-                        {hotel.price}
+                        {convertPrice(hotel.price, currency)}
                     </p>
                     <p style={{ color: '#8aaac8', fontSize: '10px' }}>per night</p>
                 </div>

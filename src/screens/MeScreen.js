@@ -390,14 +390,14 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, currency = 'MYR', se
                         disabled
                     />
                     <Divider />
-                    <SettingsRow label='App Version' value='v1.0.0 (Hackathon)' />
+                    <SettingsRow label='App Version' value='v1.0.0 (4th China-ASEAN Innovation and Entrepreneurship Competition)' />
                     <Divider />
                     <SettingsRow label='Clear Conversations' value='' onPress={() => setShowConfirm(true)} danger />
                 </SettingsCard>
 
-                <SectionHeader title='ℹ️ About' />
+                <SectionHeader title='About' />
                 <SettingsCard>
-                    <SettingsRow label='VoyageAI' value='Made with ❤️ by our team' />
+                    <SettingsRow label='VoyageAI' value='Made With ❤️ by Kai Kai and Wei Wei' />
                     <Divider />
                     <SettingsRow label='AI Powered by' value='Claude (Anthropic)' />
                     <Divider />
