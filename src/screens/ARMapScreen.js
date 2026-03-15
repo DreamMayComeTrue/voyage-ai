@@ -53,7 +53,96 @@ const getCoords = (destination) => {
     return null
 }
 
-// KUL as home base
+// ── Known tourist place coordinates ──────────────────────────────────────
+const PLACE_COORDS = {
+    // Tokyo
+    'senso-ji temple':{ lat:35.7148,lng:139.7967 }, 'senso-ji':{ lat:35.7148,lng:139.7967 },
+    'asakusa':{ lat:35.7148,lng:139.7967 }, 'shibuya crossing':{ lat:35.6595,lng:139.7004 },
+    'shibuya':{ lat:35.6595,lng:139.7004 }, 'shinjuku':{ lat:35.6938,lng:139.7034 },
+    'meiji shrine':{ lat:35.6764,lng:139.6993 }, 'harajuku':{ lat:35.6702,lng:139.7026 },
+    'akihabara':{ lat:35.7022,lng:139.7744 }, 'tsukiji market':{ lat:35.6654,lng:139.7707 },
+    'tokyo tower':{ lat:35.6586,lng:139.7454 }, 'tokyo skytree':{ lat:35.7101,lng:139.8107 },
+    'ueno park':{ lat:35.7147,lng:139.7733 }, 'teamlab':{ lat:35.6262,lng:139.7745 },
+    'odaiba':{ lat:35.6242,lng:139.7756 }, 'roppongi':{ lat:35.6628,lng:139.7320 },
+    'ginza':{ lat:35.6717,lng:139.7649 }, 'nakameguro':{ lat:35.6441,lng:139.6989 },
+    // Kyoto
+    'fushimi inari':{ lat:34.9671,lng:135.7727 }, 'fushimi inari shrine':{ lat:34.9671,lng:135.7727 },
+    'arashiyama':{ lat:35.0094,lng:135.6762 }, 'bamboo grove':{ lat:35.0170,lng:135.6721 },
+    'kinkaku-ji':{ lat:35.0394,lng:135.7292 }, 'golden pavilion':{ lat:35.0394,lng:135.7292 },
+    'gion district':{ lat:35.0038,lng:135.7757 }, 'gion':{ lat:35.0038,lng:135.7757 },
+    'nishiki market':{ lat:35.0048,lng:135.7655 }, 'kiyomizu-dera':{ lat:34.9948,lng:135.7851 },
+    // Bangkok
+    'grand palace':{ lat:13.7500,lng:100.4913 }, 'wat pho':{ lat:13.7465,lng:100.4927 },
+    'wat arun':{ lat:13.7437,lng:100.4888 }, 'chatuchak':{ lat:13.7999,lng:100.5499 },
+    'khao san road':{ lat:13.7589,lng:100.4977 }, 'lumphini park':{ lat:13.7317,lng:100.5418 },
+    'sukhumvit':{ lat:13.7305,lng:100.5702 }, 'asiatique':{ lat:13.7101,lng:100.5077 },
+    // Singapore
+    'gardens by the bay':{ lat:1.2816,lng:103.8636 }, 'marina bay sands':{ lat:1.2838,lng:103.8592 },
+    'marina bay':{ lat:1.2838,lng:103.8592 }, 'sentosa':{ lat:1.2494,lng:103.8303 },
+    'chinatown':{ lat:1.2838,lng:103.8443 }, 'little india':{ lat:1.3066,lng:103.8518 },
+    'orchard road':{ lat:1.3048,lng:103.8318 }, 'clarke quay':{ lat:1.2906,lng:103.8467 },
+    'merlion':{ lat:1.2868,lng:103.8545 },
+    // Bali
+    'tanah lot':{ lat:-8.6212,lng:115.0868 }, 'uluwatu':{ lat:-8.8292,lng:115.0849 },
+    'ubud market':{ lat:-8.5069,lng:115.2625 }, 'tegallalang':{ lat:-8.4320,lng:115.2785 },
+    'mount batur':{ lat:-8.2424,lng:115.3756 }, 'seminyak':{ lat:-8.6878,lng:115.1609 },
+    'kuta':{ lat:-8.7183,lng:115.1686 }, 'tirta empul':{ lat:-8.4153,lng:115.3161 },
+    // Dubai
+    'burj khalifa':{ lat:25.1972,lng:55.2744 }, 'dubai mall':{ lat:25.1972,lng:55.2797 },
+    'palm jumeirah':{ lat:25.1124,lng:55.1390 }, 'dubai creek':{ lat:25.2627,lng:55.3045 },
+    'gold souk':{ lat:25.2857,lng:55.3050 }, 'desert safari':{ lat:24.8830,lng:55.5010 },
+    'burj al arab':{ lat:25.1412,lng:55.1853 },
+    // Paris
+    'eiffel tower':{ lat:48.8584,lng:2.2945 }, 'louvre':{ lat:48.8606,lng:2.3376 },
+    'louvre museum':{ lat:48.8606,lng:2.3376 }, 'notre dame':{ lat:48.8530,lng:2.3499 },
+    'montmartre':{ lat:48.8867,lng:2.3431 }, 'champs-élysées':{ lat:48.8698,lng:2.3078 },
+    'versailles':{ lat:48.8049,lng:2.1204 },
+    // Seoul
+    'gyeongbokgung':{ lat:37.5796,lng:126.9770 }, 'gyeongbokgung palace':{ lat:37.5796,lng:126.9770 },
+    'bukchon hanok':{ lat:37.5823,lng:126.9850 }, 'myeongdong':{ lat:37.5636,lng:126.9854 },
+    'hongdae':{ lat:37.5563,lng:126.9228 }, 'gangnam':{ lat:37.4979,lng:127.0276 },
+    'n seoul tower':{ lat:37.5512,lng:126.9882 }, 'insadong':{ lat:37.5742,lng:126.9856 },
+    'han river':{ lat:37.5170,lng:126.9969 },
+    // London
+    'big ben':{ lat:51.5007,lng:-0.1246 }, 'buckingham palace':{ lat:51.5014,lng:-0.1419 },
+    'tower of london':{ lat:51.5081,lng:-0.0759 }, 'tower bridge':{ lat:51.5055,lng:-0.0754 },
+    'british museum':{ lat:51.5194,lng:-0.1270 }, 'trafalgar square':{ lat:51.5080,lng:-0.1281 },
+    'london eye':{ lat:51.5033,lng:-0.1195 }, 'covent garden':{ lat:51.5117,lng:-0.1240 },
+    // KL
+    'petronas towers':{ lat:3.1579,lng:101.7116 }, 'petronas twin towers':{ lat:3.1579,lng:101.7116 },
+    'batu caves':{ lat:3.2379,lng:101.6840 }, 'bukit bintang':{ lat:3.1466,lng:101.7100 },
+    'merdeka square':{ lat:3.1486,lng:101.6944 },
+    // Sydney
+    'opera house':{ lat:-33.8568,lng:151.2153 }, 'sydney opera house':{ lat:-33.8568,lng:151.2153 },
+    'harbour bridge':{ lat:-33.8523,lng:151.2108 }, 'bondi beach':{ lat:-33.8915,lng:151.2767 },
+    'darling harbour':{ lat:-33.8726,lng:151.1993 }, 'the rocks':{ lat:-33.8596,lng:151.2090 },
+    // Hong Kong
+    'victoria peak':{ lat:22.2759,lng:114.1455 }, 'the peak':{ lat:22.2759,lng:114.1455 },
+    'tsim sha tsui':{ lat:22.2988,lng:114.1722 }, 'ocean park':{ lat:22.2470,lng:114.1717 },
+    'avenue of stars':{ lat:22.2933,lng:114.1745 },
+}
+
+const getPlaceCoords = (placeName, cityCoords) => {
+    if (!placeName) return null
+    const key = placeName.toLowerCase().replace(/[*_#•🎤]/g, '').replace(/\s+/g, ' ').trim()
+    if (PLACE_COORDS[key]) return PLACE_COORDS[key]
+    for (const [k, v] of Object.entries(PLACE_COORDS)) {
+        if (key.includes(k) || k.includes(key)) return v
+    }
+    // Fallback: jitter around city center so pins don't stack
+    if (cityCoords) {
+        const seed = key.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+        return {
+            lat: cityCoords.lat + (((seed * 13) % 100) - 50) * 0.003,
+            lng: cityCoords.lng + (((seed * 17) % 100) - 50) * 0.003,
+        }
+    }
+    return null
+}
+
+// Day colours — one per day
+const DAY_COLORS = ['#1e6fd9','#059669','#f59e0b','#7c3aed','#ef4444','#0ea5e9','#ec4899','#14b8a6']
+const getDayColor = (i) => DAY_COLORS[i % DAY_COLORS.length]
 const HOME = { lat: 3.1390, lng: 101.6869, name: 'Kuala Lumpur', emoji: '🏠' }
 
 // ── Main Screen ───────────────────────────────────────────────────────────
@@ -65,6 +154,7 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
     const [activeLayer, setActiveLayer] = useState('trips') // 'trips' | 'itinerary' | 'explore'
     const [selectedPin, setSelectedPin] = useState(null)
     const [mapStyle, setMapStyle]     = useState('street') // 'street' | 'satellite' | 'dark'
+    const [drilldown, setDrilldown]   = useState(null) // itinerary currently drilled into
 
     // Build pin data from trips
     const tripPins = trips
@@ -93,7 +183,8 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
                 type: 'itinerary',
                 label: coords.name,
                 detail: it.title,
-                days: it.totalDays,
+                days: it.totalDays || it.days?.length,
+                itineraryData: it, // full itinerary for drilldown
             }
         }).filter(Boolean)
 
@@ -188,17 +279,8 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
 
         // Add home marker
         const homeIcon = L.divIcon({
-            html: `<div style="
-                width:36px;height:36px;border-radius:50%;
-                background:linear-gradient(135deg,#f59e0b,#f97316);
-                border:3px solid #ffffff;
-                display:flex;align-items:center;justify-content:center;
-                box-shadow:0 4px 12px rgba(0,0,0,0.3);
-                font-size:16px;
-            ">🏠</div>`,
-            className: '',
-            iconSize: [36, 36],
-            iconAnchor: [18, 18],
+            html: `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#f97316);border:3px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-size:16px;">🏠</div>`,
+            className: '', iconSize: [36, 36], iconAnchor: [18, 18],
         })
         const homeMarker = L.marker([HOME.lat, HOME.lng], { icon: homeIcon })
         homeMarker._voyagePin = true
@@ -211,26 +293,20 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
 
         pins.forEach(pin => {
             const icon = L.divIcon({
-                html: `<div style="
-                    width:40px;height:40px;border-radius:50%;
-                    background:${color};
-                    border:3px solid #ffffff;
-                    display:flex;align-items:center;justify-content:center;
-                    box-shadow:0 4px 16px rgba(0,0,0,0.35);
-                    font-size:18px;cursor:pointer;
-                    transition:transform 0.2s;
-                ">${pin.emoji}</div>`,
-                className: '',
-                iconSize: [40, 40],
-                iconAnchor: [20, 20],
+                html: `<div style="width:40px;height:40px;border-radius:50%;background:${color};border:3px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.35);font-size:18px;cursor:pointer;">${pin.emoji}</div>`,
+                className: '', iconSize: [40, 40], iconAnchor: [20, 20],
             })
-
             const marker = L.marker([pin.lat, pin.lng], { icon })
             marker._voyagePin = true
-            marker.on('click', () => setSelectedPin(pin))
+            marker.on('click', () => {
+                setSelectedPin(pin)
+                // If itinerary pin — drill in
+                if (layer === 'itinerary' && pin.itineraryData) {
+                    drillIntoItinerary(map, pin.itineraryData, pin)
+                }
+            })
             marker.addTo(map)
 
-            // Draw line from home to trip/itinerary pins
             if (layer === 'trips' || layer === 'itinerary') {
                 const line = L.polyline(
                     [[HOME.lat, HOME.lng], [pin.lat, pin.lng]],
@@ -241,24 +317,103 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
             }
         })
 
-        // Fit map to show all pins — only if we have 2+ valid points
         const allCoords = [[HOME.lat, HOME.lng], ...pins.map(p => [p.lat, p.lng])]
             .filter(([lat, lng]) => lat != null && lng != null && !isNaN(lat) && !isNaN(lng))
-
         if (allCoords.length >= 2) {
             try {
                 const bounds = L.latLngBounds(allCoords)
-                if (bounds.isValid()) {
-                    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 8 })
-                }
-            } catch (e) {
-                console.warn('fitBounds failed:', e)
-                map.setView([20, 100], 3)
-            }
+                if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 8 })
+            } catch { map.setView([20, 100], 3) }
         } else {
-            // Just one or no pins — show world view
             map.setView([20, 100], 3)
         }
+    }
+
+    // ── Drill into an itinerary — show all places as numbered day-coloured pins ──
+    const drillIntoItinerary = (map, itinerary, cityPin) => {
+        if (!map || !window.L || !itinerary?.days) return
+        const L = window.L
+        setDrilldown(itinerary)
+
+        // Clear existing pins
+        map.eachLayer(l => { if (l._voyagePin) map.removeLayer(l) })
+
+        const cityCoords = { lat: cityPin.lat, lng: cityPin.lng }
+        const placeBounds = []
+        let globalOrder = 0
+
+        itinerary.days.forEach((day, dayIndex) => {
+            const color = getDayColor(dayIndex)
+            const places = day.places || []
+
+            places.forEach((place, placeIndex) => {
+                globalOrder++
+                const coords = getPlaceCoords(place.name, cityCoords)
+                if (!coords) return
+
+                placeBounds.push([coords.lat, coords.lng])
+
+                // Numbered pin with day colour
+                const num = globalOrder
+                const icon = L.divIcon({
+                    html: `<div style="
+                        width:36px;height:36px;border-radius:50%;
+                        background:${color};
+                        border:3px solid #ffffff;
+                        display:flex;align-items:center;justify-content:center;
+                        box-shadow:0 4px 14px rgba(0,0,0,0.4);
+                        font-size:13px;font-weight:900;color:#fff;
+                        cursor:pointer;font-family:Inter,sans-serif;
+                    ">${num}</div>`,
+                    className: '', iconSize: [36, 36], iconAnchor: [18, 18],
+                })
+
+                const marker = L.marker([coords.lat, coords.lng], { icon })
+                marker._voyagePin = true
+                marker.on('click', () => setSelectedPin({
+                    emoji: `${num}`,
+                    label: place.name,
+                    detail: `Day ${dayIndex + 1} · ${place.time || place.section || ''}`,
+                    tip: place.tip,
+                    dayColor: color,
+                    lat: coords.lat, lng: coords.lng,
+                }))
+                marker.addTo(map)
+
+                // Connect places within same day with solid line
+                if (placeIndex > 0) {
+                    const prevPlace = places[placeIndex - 1]
+                    const prevCoords = getPlaceCoords(prevPlace.name, cityCoords)
+                    if (prevCoords) {
+                        const line = L.polyline(
+                            [[prevCoords.lat, prevCoords.lng], [coords.lat, coords.lng]],
+                            { color, weight: 2.5, opacity: 0.7 }
+                        )
+                        line._voyagePin = true
+                        line.addTo(map)
+                    }
+                }
+            })
+        })
+
+        // Fit to place pins
+        if (placeBounds.length >= 2) {
+            try {
+                const bounds = L.latLngBounds(placeBounds)
+                if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
+            } catch { map.setView([cityCoords.lat, cityCoords.lng], 13) }
+        } else if (placeBounds.length === 1) {
+            map.setView(placeBounds[0], 14)
+        } else {
+            map.setView([cityCoords.lat, cityCoords.lng], 13)
+        }
+    }
+
+    // ── Exit drilldown — go back to itinerary overview ─────────────────────
+    const exitDrilldown = () => {
+        setDrilldown(null)
+        setSelectedPin(null)
+        if (leafletRef.current) drawPins(leafletRef.current, itinPins, 'itinerary')
     }
 
     // Redraw when layer changes
@@ -358,7 +513,7 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
                 <div ref={mapRef} style={{ flex: 1, width: '100%' }} />
             )}
 
-            {/* ── Layer tabs ── */}
+            {/* ── Bottom panel ── */}
             <div style={{
                 position: 'absolute', bottom: '16px', left: '16px', right: '16px', zIndex: 1000,
             }}>
@@ -367,16 +522,17 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
                     <div style={{
                         background: 'rgba(10,22,40,0.95)', backdropFilter: 'blur(12px)',
                         borderRadius: '16px', padding: '14px 16px', marginBottom: '12px',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        border: `1px solid ${selectedPin.dayColor ? selectedPin.dayColor + '60' : 'rgba(255,255,255,0.1)'}`,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                         display: 'flex', alignItems: 'center', gap: '12px',
                     }}>
                         <div style={{
                             width: '44px', height: '44px', borderRadius: '14px',
-                            background: `${PIN_COLORS[activeLayer]}30`,
-                            border: `2px solid ${PIN_COLORS[activeLayer]}`,
+                            background: selectedPin.dayColor ? `${selectedPin.dayColor}30` : `${PIN_COLORS[activeLayer]}30`,
+                            border: `2px solid ${selectedPin.dayColor || PIN_COLORS[activeLayer]}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '22px', flexShrink: 0,
+                            fontSize: selectedPin.dayColor ? '16px' : '22px',
+                            fontWeight: '900', color: '#fff', flexShrink: 0,
                         }}>
                             {selectedPin.emoji}
                         </div>
@@ -387,15 +543,19 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
                             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', marginTop: '2px' }}>
                                 {selectedPin.detail}
                             </p>
-                            {selectedPin.date && (
+                            {selectedPin.tip && (
                                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '2px' }}>
-                                    📅 {selectedPin.date}
-                                    {selectedPin.bookingRef && ` · ${selectedPin.bookingRef}`}
+                                    💡 {selectedPin.tip}
                                 </p>
                             )}
-                            {selectedPin.days && (
+                            {selectedPin.date && (
                                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '2px' }}>
-                                    🗓️ {selectedPin.days} day itinerary
+                                    📅 {selectedPin.date}{selectedPin.bookingRef && ` · ${selectedPin.bookingRef}`}
+                                </p>
+                            )}
+                            {selectedPin.days && !selectedPin.dayColor && (
+                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '2px' }}>
+                                    🗓️ {selectedPin.days} day itinerary — tap to explore
                                 </p>
                             )}
                         </div>
@@ -410,42 +570,85 @@ const ARMapScreen = ({ trips = [], itineraries = [], setActiveScreen }) => {
                     </div>
                 )}
 
-                {/* Layer tabs */}
-                <div style={{
-                    display: 'flex', gap: '8px',
-                    background: 'rgba(10,22,40,0.9)', backdropFilter: 'blur(12px)',
-                    borderRadius: '16px', padding: '8px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                }}>
-                    {[
-                        { key: 'trips',     label: 'My Trips',   icon: '✈️', count: tripPins.length },
-                        { key: 'itinerary', label: 'Itineraries',icon: '🗺️', count: itinPins.length },
-                        { key: 'explore',   label: 'Explore',    icon: '🌍', count: explorePins.length },
-                    ].map(tab => (
-                        <button key={tab.key} onClick={() => setActiveLayer(tab.key)} style={{
-                            flex: 1,
-                            background: activeLayer === tab.key
-                                ? PIN_COLORS[tab.key]
-                                : 'transparent',
-                            border: 'none', borderRadius: '10px', padding: '9px 6px',
-                            cursor: 'pointer',
-                            display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', gap: '3px',
-                            transition: 'all 0.2s ease',
-                            boxShadow: activeLayer === tab.key ? `0 4px 12px ${PIN_COLORS[tab.key]}50` : 'none',
-                        }}>
-                            <span style={{ fontSize: '16px' }}>{tab.icon}</span>
-                            <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '700' }}>
-                                {tab.label}
-                            </span>
-                            <span style={{
-                                background: 'rgba(255,255,255,0.2)',
-                                borderRadius: '10px', padding: '1px 7px',
-                                color: '#ffffff', fontSize: '10px', fontWeight: '800',
-                            }}>{tab.count}</span>
-                        </button>
-                    ))}
-                </div>
+                {/* Drilldown mode — day legend + back button */}
+                {drilldown ? (
+                    <div style={{
+                        background: 'rgba(10,22,40,0.92)', backdropFilter: 'blur(12px)',
+                        borderRadius: '16px', padding: '12px 14px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                    }}>
+                        {/* Header row */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <div>
+                                <p style={{ color: '#fff', fontSize: '13px', fontWeight: '800' }}>
+                                    🗺️ {drilldown.title || drilldown.destination}
+                                </p>
+                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                                    Tap numbered pins to see details
+                                </p>
+                            </div>
+                            <button onClick={exitDrilldown} style={{
+                                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                                borderRadius: '8px', padding: '6px 12px', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '5px',
+                            }}>
+                                <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>← Back</span>
+                            </button>
+                        </div>
+                        {/* Day legend */}
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {drilldown.days?.map((day, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    background: `${getDayColor(i)}20`,
+                                    borderRadius: '8px', padding: '4px 10px',
+                                    border: `1px solid ${getDayColor(i)}50`,
+                                }}>
+                                    <div style={{
+                                        width: '10px', height: '10px', borderRadius: '50%',
+                                        background: getDayColor(i), flexShrink: 0,
+                                    }} />
+                                    <span style={{ color: '#fff', fontSize: '11px', fontWeight: '600' }}>
+                                        Day {i + 1}
+                                    </span>
+                                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px' }}>
+                                        {day.places?.length || 0} places
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    /* Normal layer tabs */
+                    <div style={{
+                        display: 'flex', gap: '8px',
+                        background: 'rgba(10,22,40,0.9)', backdropFilter: 'blur(12px)',
+                        borderRadius: '16px', padding: '8px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                    }}>
+                        {[
+                            { key: 'trips',     label: 'My Trips',    icon: '✈️', count: tripPins.length },
+                            { key: 'itinerary', label: 'Itineraries', icon: '🗺️', count: itinPins.length },
+                            { key: 'explore',   label: 'Explore',     icon: '🌍', count: explorePins.length },
+                        ].map(tab => (
+                            <button key={tab.key} onClick={() => setActiveLayer(tab.key)} style={{
+                                flex: 1,
+                                background: activeLayer === tab.key ? PIN_COLORS[tab.key] : 'transparent',
+                                border: 'none', borderRadius: '10px', padding: '9px 6px',
+                                cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', gap: '3px', transition: 'all 0.2s ease',
+                                boxShadow: activeLayer === tab.key ? `0 4px 12px ${PIN_COLORS[tab.key]}50` : 'none',
+                            }}>
+                                <span style={{ fontSize: '16px' }}>{tab.icon}</span>
+                                <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '700' }}>{tab.label}</span>
+                                <span style={{
+                                    background: 'rgba(255,255,255,0.2)', borderRadius: '10px',
+                                    padding: '1px 7px', color: '#ffffff', fontSize: '10px', fontWeight: '800',
+                                }}>{tab.count}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Loading overlay */}
