@@ -442,7 +442,7 @@ This project is licensed under the MIT Licence — see the [LICENSE](LICENSE) fi
 
 <div align="center">
 
-**Built With Spirit For The 4th China-ASEAN **
+**Built With Spirit For 4th China-ASEAN Innovation and Entrepreneurship Competition **
 
 *VoyageAI — Where every journey begins with a conversation.*
 
