@@ -157,9 +157,10 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, currency = 'MYR', se
                     }}>
                         <p style={{
                             color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: '600',
-                            textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px',
+                            textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0px'
                         }}>VoyageAI</p>
-                        <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '900', margin: 0 ,lineHeight:1.1}}>My Profile</h1>
+                        <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '900', margin: 0, lineHeights:1.1 }}>
+                            My Profile</h1>
                         <div style={{ display: 'flex', gap: '8px', marginTop: '5px' }}>
                             <span style={{
                                 background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
@@ -295,16 +296,9 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, currency = 'MYR', se
                 <SettingsCard>
                     <SettingsRow
                         label='App Language'
-                        value={`${currLang.flag} ${currLang.label.split(' ')[0]}`}
-                        onPress={() => { setShowLangPicker(!showLangPicker); setShowCurrPicker(false) }}
+                        value='🇬🇧 English'
+                        sub='Other languages coming soon'
                     />
-                    {showLangPicker && (
-                        <PickerGrid
-                            items={LANGUAGES.map(l => ({ value: l.code, label: l.label.split(' ')[0], prefix: l.flag }))}
-                            selected={language}
-                            onSelect={code => { setLanguage(code); savePref('voyageai_lang', code); setShowLangPicker(false) }}
-                        />
-                    )}
                     <Divider />
                     <SettingsRow
                         label='Currency'
@@ -390,7 +384,7 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, currency = 'MYR', se
                         disabled
                     />
                     <Divider />
-                    <SettingsRow label='App Version' value='v1.0.0 (4th China-ASEAN Innovation and Entrepreneurship Competition)' />
+                    <SettingsRow label='App Version' value='v1.0.0 (Hackathon)' />
                     <Divider />
                     <SettingsRow label='Clear Conversations' value='' onPress={() => setShowConfirm(true)} danger />
                 </SettingsCard>
@@ -432,15 +426,15 @@ const Divider = () => (
     <div style={{ height: '1px', background: '#f0f6ff', margin: '0 -4px' }} />
 )
 
-const SettingsRow = ({ label, value, onPress, danger }) => (
-    <div
-        onClick={onPress}
-        style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 0', cursor: onPress ? 'pointer' : 'default',
-        }}
-    >
-        <p style={{ color: danger ? '#dc2626' : '#0a1628', fontSize: '13px', fontWeight: '600' }}>{label}</p>
+const SettingsRow = ({ label, value, sub, onPress, danger }) => (
+    <div onClick={onPress} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 0', cursor: onPress ? 'pointer' : 'default',
+    }}>
+        <div>
+            <p style={{ color: danger ? '#dc2626' : '#0a1628', fontSize: '13px', fontWeight: '600' }}>{label}</p>
+            {sub && <p style={{ color: '#8aaac8', fontSize: '11px', marginTop: '1px' }}>{sub}</p>}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {value && <p style={{ color: '#8aaac8', fontSize: '12px' }}>{value}</p>}
             {onPress && <ChevronRight size={14} color={danger ? '#dc2626' : '#8aaac8'} />}
