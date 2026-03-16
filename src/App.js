@@ -9,6 +9,7 @@ import GuideScreen from './screens/GuideScreen'
 import MeScreen from './screens/MeScreen'
 import ARMapScreen from './screens/ARMapScreen'
 import PaymentScreen from './screens/PaymentScreen'
+import AddOnsScreen from './screens/AddOnsScreen'
 import ETicketScreen from './screens/ETicketScreen'
 import BottomNav from './components/BottomNav'
 import FloatingAIButton from './components/FloatingAIButton'
@@ -72,6 +73,22 @@ function App() {
         const trip = buildTrip(data)
         setTrips(prev => [...prev, trip])
         return trip
+    }
+
+    // Add-ons screen — flights only, no BottomNav
+    if (activeScreen === 'addons') {
+        return (
+            <div className="app-container">
+                <div className="screen-content">
+                    <AddOnsScreen
+                        setActiveScreen={setActiveScreen}
+                        bookingData={bookingData}
+                        setBookingData={setBookingData}
+                        currency={currency}
+                    />
+                </div>
+            </div>
+        )
     }
 
     // Payment screen — no BottomNav

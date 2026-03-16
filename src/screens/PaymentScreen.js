@@ -37,9 +37,14 @@ const CURRENCY_RATES = {
     MYR: 1, USD: 0.22, SGD: 0.30, JPY: 33, EUR: 0.20, GBP: 0.17, AUD: 0.34,
 }
 
+const PAYMENT_KEY = 'voyageai_payment_form'
+const loadPaymentForm = () => { try { return JSON.parse(sessionStorage.getItem(PAYMENT_KEY) || 'null') } catch { return null } }
+const savePaymentForm = (f) => { try { sessionStorage.setItem(PAYMENT_KEY, JSON.stringify(f)) } catch {} }
+
 const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, currency = 'MYR' }) => {
     const [step, setStep] = useState('details')
-    const [form, setForm] = useState({
+    const savedForm = loadPaymentForm()
+    const [form, setForm] = useState(savedForm || {
         name: '', email: '', cardNumber: '',
         expiry: '', cvv: '', passportNumber: '',
     })
@@ -53,6 +58,14 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
     const [passengerLabel, setPassengerLabel] = useState('')
     const [cardLabel, setCardLabel]           = useState('')
 
+    // Auto-save form to sessionStorage so back navigation restores it
+    useEffect(() => { savePaymentForm(form) }, [form])
+    // Extra passengers (for flights with 2+ passengers)
+    const [extraPassengers, setExtraPassengers] = useState(() =>
+        Array.from({ length: Math.max(0, (bookingData?.addons?.passengers || 1) - 1) },
+            (_, i) => ({ id: i + 2, name: '', passportNumber: '' }))
+    )
+
     const isHotel   = bookingData?.type === 'hotel'
     const isGuide   = bookingData?.type === 'guide'
     const guide     = bookingData?.guide || {}
@@ -61,6 +74,9 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
     const date      = bookingData?.date   || ''
     const checkIn   = bookingData?.checkIn  || null
     const checkOut  = bookingData?.checkOut || null
+
+    // Number of passengers from addons (flights only)
+    const passengerCount = (!isHotel && !isGuide) ? (bookingData?.addons?.passengers || 1) : 1
 
     // Calculate number of nights for hotel
     const nights = (() => {
@@ -80,10 +96,11 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
 
     const priceNum = parseInt((pricePerUnit || '0').replace(/[^0-9]/g, '')) || 0
 
-    // For hotel: multiply by nights. For guide: use pre-calculated total from GuideScreen
+    // Hotel: pricePerNight × nights | Flight: pricePerSeat × passengers | Guide: pre-calculated
     const baseTotal = isGuide
         ? parseInt((bookingData?.totalPrice || '0').replace(/[^0-9]/g, '')) || (guide.price * (bookingData?.days || 1))
-        : isHotel ? priceNum * nights : priceNum
+        : isHotel ? priceNum * nights : priceNum * passengerCount
+    const addonsTotal = bookingData?.addons?.total || 0
     const convertPrice = (amountMYR) => {
         const rate = CURRENCY_RATES[currency] || 1
         const sym  = CURRENCY_SYMBOLS[currency] || 'MYR'
@@ -91,7 +108,7 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
     }
 
     const price      = convertPrice(baseTotal)
-    const totalPrice = convertPrice(baseTotal + (isGuide ? 30 : 55))
+    const totalPrice = convertPrice(baseTotal + (isGuide ? 30 : 55) + addonsTotal)
 
     // Format date for display
     const formatDateShort = (d) => {
@@ -118,12 +135,17 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
     // ── Validate ────────────────────────────────────────────────────────────
     const validate = () => {
         const e = {}
-        if (!form.name.trim())                           e.name = 'Full name required'
-        if (!form.email.includes('@'))                   e.email = 'Valid email required'
+        if (!form.name.trim())                             e.name = 'Full name required'
+        if (!form.email.includes('@'))                     e.email = 'Valid email required'
         if (form.cardNumber.replace(/\s/g,'').length < 16) e.cardNumber = '16-digit card number required'
-        if (form.expiry.length < 5)                      e.expiry = 'MM/YY required'
-        if (form.cvv.length < 3)                         e.cvv = 'CVV required'
-        if (!form.passportNumber.trim())                 e.passportNumber = 'Passport number required'
+        if (form.expiry.length < 5)                        e.expiry = 'MM/YY required'
+        if (form.cvv.length < 3)                           e.cvv = 'CVV required'
+        if (!form.passportNumber.trim())                   e.passportNumber = 'Passport number required'
+        // Validate extra passengers
+        extraPassengers.forEach((p, i) => {
+            if (!p.name.trim())          e[`ep_name_${i}`]     = `Passenger ${i + 2} name required`
+            if (!p.passportNumber.trim()) e[`ep_passport_${i}`] = `Passenger ${i + 2} passport required`
+        })
         setErrors(e)
         return Object.keys(e).length === 0
     }
@@ -147,6 +169,19 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
             saveFavs(STORAGE_PASSENGERS, updated)
         }
 
+        // Save extra passengers if checked
+        let updatedFavPassengers = [...favPassengers]
+        extraPassengers.forEach((ep) => {
+            if (ep._save && ep.name) {
+                const newPass = { id: Date.now() + Math.random(), label: ep.name, name: ep.name, email: '', passportNumber: ep.passportNumber }
+                updatedFavPassengers = [...updatedFavPassengers.filter(p => p.label !== ep.name), newPass]
+            }
+        })
+        if (updatedFavPassengers.length !== favPassengers.length) {
+            setFavPassengers(updatedFavPassengers)
+            saveFavs(STORAGE_PASSENGERS, updatedFavPassengers)
+        }
+
         // Save card if checked (never save CVV — security)
         if (saveCard && form.cardNumber) {
             const brand = cardBrand(form.cardNumber)
@@ -168,11 +203,17 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
             setStep('done')
             const bookingRef = 'VA' + Math.random().toString(36).slice(2,8).toUpperCase()
             setTimeout(() => {
+                // Clear sessionStorage — booking complete
+                try {
+                    sessionStorage.removeItem('voyageai_addons_state')
+                    sessionStorage.removeItem(PAYMENT_KEY)
+                } catch {}
                 onPaymentComplete({
                     ...bookingData,
-                    passengerName:  form.name,
-                    passengerEmail: form.email,
-                    passportNumber: form.passportNumber,
+                    passengerName:   form.name,
+                    passengerEmail:  form.email,
+                    passportNumber:  form.passportNumber,
+                    extraPassengers: extraPassengers.length > 0 ? extraPassengers : undefined,
                     bookingRef,
                     paidAt: new Date().toISOString(),
                     price : totalPrice,
@@ -262,7 +303,9 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
                 padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px',
                 boxShadow: '0 2px 12px #1e6fd910', flexShrink: 0,
             }}>
-                <button onClick={() => setActiveScreen('chat')} style={{
+                <button onClick={() => setActiveScreen(
+                    bookingData?.type === 'flight' ? 'addons' : 'chat'
+                )} style={{
                     background: '#f0f6ff', border: '1px solid #c0d8f0', borderRadius: '10px',
                     width: '36px', height: '36px', display: 'flex', alignItems: 'center',
                     justifyContent: 'center', cursor: 'pointer',
@@ -485,7 +528,119 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
                     </div>
                 </div>
 
-                {/* ── PAYMENT SECTION ── */}
+                {/* ── EXTRA PASSENGERS (flights with 2+ pax) ── */}
+                {extraPassengers.map((ep, i) => (
+                    <div key={ep.id} style={{
+                        background: '#ffffff', borderRadius: '16px', padding: '16px',
+                        marginBottom: '14px', border: '1.5px solid #c0d8f0',
+                        boxShadow: '0 2px 12px #1e6fd910',
+                    }}>
+                        {/* Header with saved passenger picker */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                            <p style={{ color: '#0a1628', fontSize: '14px', fontWeight: '700' }}>
+                                👤 Passenger {i + 2} Details
+                            </p>
+                            {favPassengers.length > 0 && (
+                                <button
+                                    onClick={() => setExtraPassengers(prev => prev.map((p, idx) =>
+                                        idx === i ? { ...p, _showPicker: !p._showPicker } : p
+                                    ))}
+                                    style={{
+                                        background: ep._showPicker ? '#d0e8ff' : '#f0f6ff',
+                                        border: '1.5px solid #c0d8f0', borderRadius: '8px',
+                                        padding: '5px 10px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '4px',
+                                        color: '#1e6fd9', fontSize: '12px', fontWeight: '600',
+                                    }}
+                                >
+                                    <Star size={12} fill={ep._showPicker ? '#1e6fd9' : 'none'} />
+                                    Saved ({favPassengers.length})
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Saved passengers picker for this extra pax */}
+                        {ep._showPicker && (
+                            <div style={{
+                                background: '#f0f6ff', borderRadius: '12px',
+                                padding: '10px', marginBottom: '14px', border: '1px solid #c0d8f0',
+                            }}>
+                                {favPassengers.map(p => (
+                                    <div key={p.id} style={{
+                                        display: 'flex', alignItems: 'center', gap: '10px',
+                                        background: '#fff', borderRadius: '10px', padding: '10px 12px',
+                                        marginBottom: '6px', border: '1px solid #e0ecff', cursor: 'pointer',
+                                    }}
+                                         onClick={() => setExtraPassengers(prev => prev.map((ep2, idx) =>
+                                             idx === i ? { ...ep2, name: p.name, passportNumber: p.passportNumber || '', _showPicker: false } : ep2
+                                         ))}
+                                    >
+                                        <div style={{
+                                            width: '32px', height: '32px', borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #1e6fd9, #4a9fe8)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                        }}>
+                                            <User size={14} color='#fff' />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ color: '#0a1628', fontSize: '13px', fontWeight: '700' }}>{p.label}</p>
+                                            <p style={{ color: '#8aaac8', fontSize: '11px' }}>{p.email} · {p.passportNumber || 'No passport'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: '12px' }}>
+                            {lbl(`Full Name — Passenger ${i + 2}`)}
+                            <input
+                                style={{ ...inp(`ep_name_${i}`), border: `1.5px solid ${errors[`ep_name_${i}`] ? '#ef4444' : '#c0d8f0'}` }}
+                                placeholder='e.g. Siti binti Abdullah'
+                                value={ep.name}
+                                onChange={e => setExtraPassengers(prev => prev.map((p, idx) =>
+                                    idx === i ? { ...p, name: e.target.value } : p
+                                ))}
+                            />
+                            {errors[`ep_name_${i}`] && <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px' }}>{errors[`ep_name_${i}`]}</p>}
+                        </div>
+                        <div style={{ marginBottom: '12px' }}>
+                            {lbl(`Passport Number — Passenger ${i + 2}`)}
+                            <input
+                                style={{ ...inp(`ep_passport_${i}`), border: `1.5px solid ${errors[`ep_passport_${i}`] ? '#ef4444' : '#c0d8f0'}` }}
+                                placeholder='e.g. A87654321'
+                                value={ep.passportNumber}
+                                onChange={e => setExtraPassengers(prev => prev.map((p, idx) =>
+                                    idx === i ? { ...p, passportNumber: e.target.value.toUpperCase() } : p
+                                ))}
+                            />
+                            {errors[`ep_passport_${i}`] && <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px' }}>{errors[`ep_passport_${i}`]}</p>}
+                        </div>
+
+                        {/* Save this extra passenger as favourite */}
+                        <div style={{ background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px', border: '1px solid #c0d8f0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <button
+                                    onClick={() => setExtraPassengers(prev => prev.map((p, idx) =>
+                                        idx === i ? { ...p, _save: !p._save } : p
+                                    ))}
+                                    style={{
+                                        width: '20px', height: '20px', borderRadius: '6px',
+                                        background: ep._save ? '#1e6fd9' : '#ffffff',
+                                        border: `2px solid ${ep._save ? '#1e6fd9' : '#c0d8f0'}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', flexShrink: 0,
+                                    }}
+                                >
+                                    {ep._save && <Check size={12} color='#ffffff' />}
+                                </button>
+                                <p style={{ color: '#0a1628', fontSize: '12px', fontWeight: '600' }}>
+                                    Save Passenger {i + 2} as favourite
+                                </p>
+                                <Star size={13} color={ep._save ? '#f59e0b' : '#8aaac8'} fill={ep._save ? '#f59e0b' : 'none'} />
+                            </div>
+                        </div>
+                    </div>
+                ))}
                 <div style={{
                     background: '#ffffff', borderRadius: '16px', padding: '16px',
                     marginBottom: '14px', border: '1px solid #e0ecff',
@@ -663,9 +818,10 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
                             ? { label: `Guide fee (${bookingData?.days}d × RM ${guide.price})`, value: price }
                             : isHotel
                                 ? { label: `Room (${nights} night${nights > 1 ? 's' : ''} × ${pricePerUnit})`, value: price }
-                                : { label: 'Base fare', value: price },
-                        { label: 'Taxes & fees', value: 'MYR 45' },
-                        { label: 'Service fee', value: 'MYR 10' },
+                                : { label: `Flight (${passengerCount} pax × ${pricePerUnit})`, value: price },
+                        ...(addonsTotal > 0 ? [{ label: '✈️ Flight Add-ons', value: `MYR ${addonsTotal}` }] : []),
+                        { label: 'Taxes & fees', value: isGuide ? 'RM 20' : 'MYR 45' },
+                        { label: 'Service fee',   value: 'MYR 10' },
                     ].map((row, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                             <p style={{ color: '#5a7a9f', fontSize: '13px' }}>{row.label}</p>

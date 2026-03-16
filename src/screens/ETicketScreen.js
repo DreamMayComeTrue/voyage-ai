@@ -112,8 +112,46 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
             ? `MYR ${(parseInt((hotel.price || 'MYR 380').replace(/[^0-9]/g,'')) + 55).toLocaleString()}`
             : `MYR ${(parseInt((flight.price || 'MYR 580').replace(/[^0-9]/g,'')) + 55).toLocaleString()}`)
 
-    // Fixed seat for flight (stable, not re-randomising on re-render)
-    const seatNum  = useMemo(() => `${Math.floor(Math.random()*30)+1}${['A','B','C','D','E','F'][Math.floor(Math.random()*6)]}`, [ref])
+    // Generate seat numbers — logical per passenger, seat-together aware
+    const generateSeats = useMemo(() => {
+        const addons = ticketData?.addons
+        const paxCount = (ticketData?.extraPassengers?.length || 0) + 1
+        const seatPref = addons?.seat?.id || 'none'
+        const rowNum = Math.floor(Math.random() * 25) + 5 // rows 5-29
+        const cols = ['A','B','C','D','E','F']
+
+        if (seatPref === 'together' || seatPref === 'none') {
+            // Adjacent seats: same row, consecutive columns
+            return Array.from({ length: paxCount }, (_, i) => {
+                const colIndex = Math.min(i, cols.length - 1)
+                return `${rowNum}${cols[colIndex]}`
+            })
+        } else if (seatPref === 'window') {
+            // All window seats: A or F
+            return Array.from({ length: paxCount }, (_, i) =>
+                `${rowNum + i}${i % 2 === 0 ? 'A' : 'F'}`
+            )
+        } else if (seatPref === 'aisle') {
+            // All aisle seats: C or D
+            return Array.from({ length: paxCount }, (_, i) =>
+                `${rowNum + i}${i % 2 === 0 ? 'C' : 'D'}`
+            )
+        } else if (seatPref === 'extra') {
+            // Exit row (row 12)
+            return Array.from({ length: paxCount }, (_, i) =>
+                `12${cols[i % cols.length]}`
+            )
+        } else if (seatPref === 'front') {
+            // Rows 5-8
+            return Array.from({ length: paxCount }, (_, i) =>
+                `${5 + i}B`
+            )
+        }
+        // Default: sequential seats
+        return Array.from({ length: paxCount }, (_, i) =>
+            `${rowNum}${cols[i % cols.length]}`
+        )
+    }, [ref])
 
     // Grid info differs for flight vs hotel
     const infoGrid = isHotel ? [
@@ -126,9 +164,9 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
     ] : [
         { label: 'Terminal',   value: flight.terminal || 'T1' },
         { label: 'Gate',       value: flight.gate     || 'G10' },
-        { label: 'Seat',       value: seatNum },
+        { label: 'Seat',       value: generateSeats[0] },
         { label: 'Class',      value: 'Economy' },
-        { label: 'Status',     value: flight.status   || 'Confirmed' },
+        { label: 'Booking Status', value: flight.status   || 'Confirmed' },
         { label: 'Amount Paid',value: totalPrice },
     ]
 
@@ -301,40 +339,190 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                     {/* Ticket Body */}
                     <div style={{ padding: '20px' }}>
 
-                        {/* Passenger */}
-                        <div style={{ marginBottom: '16px' }}>
-                            <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600',
-                                textTransform: 'uppercase', marginBottom: '4px' }}>
-                                {isHotel ? 'Guest' : 'Passenger'}
-                            </p>
-                            <p style={{ color: '#0a1628', fontSize: '16px', fontWeight: '700' }}>
-                                {name}
-                            </p>
-                            <p style={{ color: '#5a7a9f', fontSize: '12px' }}>
-                                {isHotel ? 'Guest ID' : 'Passport'}: {passport}
-                            </p>
-                        </div>
+                        {/* Multi-passenger: one section per pax */}
+                        {!isHotel && ticketData?.extraPassengers?.length > 0 ? (
+                            <>
+                                {[
+                                    { name: ticketData.passengerName, passportNumber: ticketData.passportNumber },
+                                    ...ticketData.extraPassengers
+                                ].map((p, i) => (
+                                    <div key={i}>
+                                        {/* Divider between passengers */}
+                                        {i > 0 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0' }}>
+                                                <div style={{ flex: 1, height: '1px', background: '#e0ecff' }} />
+                                                <span style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                                    Passenger {i + 1}
+                                                </span>
+                                                <div style={{ flex: 1, height: '1px', background: '#e0ecff' }} />
+                                            </div>
+                                        )}
 
-                        {/* Info Grid */}
-                        <div style={{
-                            display: 'grid', gridTemplateColumns: '1fr 1fr',
-                            gap: '10px', marginBottom: '20px',
-                        }}>
-                            {infoGrid.map((item, i) => (
-                                <div key={i} style={{
-                                    background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px',
+                                        {/* Passenger header */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            marginBottom: '12px',
+                                        }}>
+                                            <div>
+                                                <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600',
+                                                    textTransform: 'uppercase', marginBottom: '2px' }}>
+                                                    Passenger {i + 1}
+                                                </p>
+                                                <p style={{ color: '#0a1628', fontSize: '15px', fontWeight: '800' }}>{p.name}</p>
+                                                <p style={{ color: '#5a7a9f', fontSize: '12px' }}>Passport: {p.passportNumber}</p>
+                                            </div>
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, #1e6fd9, #4a9fe8)',
+                                                borderRadius: '10px', padding: '8px 14px', textAlign: 'center',
+                                                boxShadow: '0 4px 10px #1e6fd930',
+                                            }}>
+                                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Seat</p>
+                                                <p style={{ color: '#fff', fontSize: '18px', fontWeight: '900', lineHeight: 1, fontFamily: 'monospace' }}>
+                                                    {generateSeats[i] || generateSeats[0]}
+                                                </p>
+                                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '9px', marginTop: '2px' }}>Economy</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Per-pax grid: terminal, gate, class only */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                            {[
+                                                { label: 'Terminal', value: flight.terminal || 'T1' },
+                                                { label: 'Gate',     value: flight.gate     || 'G10' },
+                                                { label: 'Class',    value: 'Economy' },
+                                            ].map((item, j) => (
+                                                <div key={j} style={{ background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px' }}>
+                                                    <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase' }}>
+                                                        {item.label}
+                                                    </p>
+                                                    <p style={{ color: '#0a1628', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>
+                                                        {item.value}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Separator before shared booking info */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0' }}>
+                                    <div style={{ flex: 1, height: '1px', background: '#e0ecff' }} />
+                                    <span style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                        Booking Summary
+                                    </span>
+                                    <div style={{ flex: 1, height: '1px', background: '#e0ecff' }} />
+                                </div>
+
+                                {/* Shared: Booking Status + Amount Paid */}
+                                <div style={{
+                                    display: 'grid', gridTemplateColumns: '1fr 1fr',
+                                    gap: '8px', marginBottom: '20px',
                                 }}>
+                                    <div style={{ background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px' }}>
+                                        <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase' }}>Booking Status</p>
+                                        <p style={{ color: '#059669', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>✅ Confirmed</p>
+                                    </div>
+                                    <div style={{ background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px' }}>
+                                        <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase' }}>Amount Paid</p>
+                                        <p style={{ color: '#0a1628', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>{totalPrice}</p>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {/* Single passenger */}
+                                <div style={{ marginBottom: '16px' }}>
                                     <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600',
-                                        textTransform: 'uppercase' }}>
-                                        {item.label}
+                                        textTransform: 'uppercase', marginBottom: '4px' }}>
+                                        {isHotel ? 'Guest' : 'Passenger'}
                                     </p>
-                                    <p style={{ color: '#0a1628', fontSize: '12px', fontWeight: '700',
-                                        marginTop: '2px' }}>
-                                        {item.value}
+                                    <p style={{ color: '#0a1628', fontSize: '16px', fontWeight: '700' }}>{name}</p>
+                                    <p style={{ color: '#5a7a9f', fontSize: '12px' }}>
+                                        {isHotel ? 'Guest ID' : 'Passport'}: {passport}
                                     </p>
                                 </div>
-                            ))}
-                        </div>
+
+                                {/* Info Grid */}
+                                <div style={{
+                                    display: 'grid', gridTemplateColumns: '1fr 1fr',
+                                    gap: '10px', marginBottom: '20px',
+                                }}>
+                                    {infoGrid.map((item, i) => (
+                                        <div key={i} style={{ background: '#f0f6ff', borderRadius: '10px', padding: '10px 12px' }}>
+                                            <p style={{ color: '#8aaac8', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase' }}>
+                                                {item.label}
+                                            </p>
+                                            <p style={{ color: '#0a1628', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>
+                                                {item.value}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {/* Add-ons section — flight only */}
+                        {!isHotel && ticketData?.addons && (
+                            <div style={{ marginBottom: '20px' }}>
+                                <p style={{
+                                    color: '#8aaac8', fontSize: '10px', fontWeight: '600',
+                                    textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px',
+                                }}>Flight Add-ons</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                                    {/* Meal */}
+                                    {ticketData.addons.meal?.id !== 'standard' && ticketData.addons.meal?.id !== 'none' && (
+                                        <AddonRow
+                                            emoji={ticketData.addons.meal.emoji}
+                                            label={ticketData.addons.meal.label}
+                                            price={ticketData.addons.meal.price * (ticketData.addons.passengers || 1)}
+                                        />
+                                    )}
+                                    {ticketData.addons.meal?.id === 'standard' && (
+                                        <AddonRow emoji='🍱' label='Standard Meal' price={0} />
+                                    )}
+                                    {ticketData.addons.meal?.id === 'halal' && (
+                                        <AddonRow emoji='☪️' label='Halal Meal' price={0} />
+                                    )}
+                                    {/* Baggage */}
+                                    {ticketData.addons.baggage?.id !== 'none' && (
+                                        <AddonRow
+                                            emoji='🧳'
+                                            label={`${ticketData.addons.baggage.label} Baggage`}
+                                            price={ticketData.addons.baggage.price * (ticketData.addons.passengers || 1)}
+                                        />
+                                    )}
+                                    {ticketData.addons.baggage?.id === 'none' && (
+                                        <AddonRow emoji='🎒' label='Cabin Bag Only (7kg)' price={0} />
+                                    )}
+                                    {/* Seat */}
+                                    {ticketData.addons.seat && (
+                                        <AddonRow
+                                            emoji={ticketData.addons.seat.emoji}
+                                            label={ticketData.addons.seat.label}
+                                            price={ticketData.addons.seat.price * (ticketData.addons.passengers || 1)}
+                                        />
+                                    )}
+                                    {/* Extras */}
+                                    {ticketData.addons.extras?.map((e, i) => (
+                                        <AddonRow key={i} emoji={e.emoji} label={e.label} price={e.price} />
+                                    ))}
+                                    {/* Total add-ons */}
+                                    {ticketData.addons.total > 0 && (
+                                        <div style={{
+                                            borderTop: '1px solid #e0ecff', paddingTop: '8px', marginTop: '2px',
+                                            display: 'flex', justifyContent: 'space-between',
+                                        }}>
+                                            <span style={{ color: '#5a7a9f', fontSize: '11px', fontWeight: '700' }}>
+                                                Add-ons total
+                                            </span>
+                                            <span style={{ color: '#1e6fd9', fontSize: '12px', fontWeight: '800' }}>
+                                                +MYR {ticketData.addons.total}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* QR Code */}
                         <div style={{
@@ -427,5 +615,22 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
         </div>
     )
 }
+
+// ── Addon row for e-ticket ────────────────────────────────────────────────
+const AddonRow = ({ emoji, label, price }) => (
+    <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: '#f8faff', borderRadius: '8px', padding: '7px 10px',
+        border: '1px solid #e0ecff',
+    }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <span style={{ fontSize: '14px' }}>{emoji}</span>
+            <span style={{ color: '#0a1628', fontSize: '11px', fontWeight: '600' }}>{label}</span>
+        </div>
+        <span style={{ color: price > 0 ? '#1e6fd9' : '#059669', fontSize: '11px', fontWeight: '700' }}>
+            {price > 0 ? `+MYR ${price}` : 'Free'}
+        </span>
+    </div>
+)
 
 export default ETicketScreen

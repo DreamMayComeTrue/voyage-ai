@@ -1188,7 +1188,7 @@ const ChatScreen = ({
                                             destination: flightResults.destination,
                                         })
                                     }
-                                    setActiveScreen('payment')
+                                    setActiveScreen('addons')
                                     setFlightResults(null)
                                 }}
                             />

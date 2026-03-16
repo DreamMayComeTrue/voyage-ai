@@ -113,29 +113,68 @@ export const searchFlights = async (origin, destination, date) => {
 }
 
 const getMockFlights = (origin, destination, date) => {
+    const now = new Date()
+    const todayStr = getLocalDateStr()
+    const isToday = date === todayStr
+
+    // For today's flights, only show times that are in the future (at least 3 hours from now)
+    const currentHour = now.getHours() + now.getMinutes() / 60
+    const minHour = isToday ? currentHour + 3 : 0 // need 3h buffer for check-in
+
     const airlines = [
-        { name: 'AirAsia X',         code: 'D7' },
-        { name: 'Malaysia Airlines', code: 'MH' },
-        { name: 'Batik Air',         code: 'OD' },
+        { name: 'AirAsia X',         code: 'D7', terminal: 'T2' },
+        { name: 'Malaysia Airlines', code: 'MH', terminal: 'T1' },
+        { name: 'Batik Air',         code: 'OD', terminal: 'T2' },
     ]
-    const schedule = [
+
+    // All possible departure slots throughout the day
+    const allSlots = [
+        { dep: '06:00', arr: '14:30', price: 520  },
         { dep: '08:00', arr: '16:30', price: 580  },
+        { dep: '10:30', arr: '19:00', price: 650  },
         { dep: '13:30', arr: '22:00', price: 790  },
+        { dep: '16:00', arr: '00:30', price: 720  },
+        { dep: '19:30', arr: '04:00', price: 870  },
         { dep: '22:10', arr: '06:15', price: 1050 },
+        { dep: '23:55', arr: '08:20', price: 980  },
     ]
-    return airlines.map((airline, i) => ({
-        airline:       airline.name,
-        flightNumber:  `${airline.code}${500 + i * 111}`,
-        origin,
-        destination,
-        departureTime: `${date}T${schedule[i].dep}:00+08:00`,
-        arrivalTime:   `${date}T${schedule[i].arr}:00+09:00`,
-        price:         `MYR ${schedule[i].price}`,
-        status:        'Scheduled',
-        terminal:      `T${i + 1}`,
-        gate:          `G${10 + i * 5}`,
-        isRealData:    false,
-    }))
+
+    // Filter to slots that are in the future (or all if not today)
+    const validSlots = isToday
+        ? allSlots.filter(s => {
+            const [h, m] = s.dep.split(':').map(Number)
+            return (h + m / 60) > minHour
+        })
+        : allSlots
+
+    // Pick 3 evenly spread slots, or fewer if not enough valid ones
+    const picked = validSlots.length >= 3
+        ? [
+            validSlots[0],
+            validSlots[Math.floor(validSlots.length / 2)],
+            validSlots[validSlots.length - 1],
+        ]
+        : validSlots.length > 0
+            ? validSlots
+            : allSlots.slice(0, 3) // fallback: future date, show first 3
+
+    return airlines.slice(0, picked.length).map((airline, i) => {
+        const slot = picked[i]
+        const gate = `G${10 + i * 5}`
+        return {
+            airline:       airline.name,
+            flightNumber:  `${airline.code}${500 + i * 111}`,
+            origin,
+            destination,
+            departureTime: `${date}T${slot.dep}:00+08:00`,
+            arrivalTime:   `${date}T${slot.arr}:00+09:00`,
+            price:         `MYR ${slot.price}`,
+            status:        'Scheduled',
+            terminal:      airline.terminal,
+            gate,
+            isRealData:    false,
+        }
+    })
 }
 
 export const searchHotels = async (city) => {

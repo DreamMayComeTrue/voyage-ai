@@ -193,8 +193,8 @@ const GuideScreen = ({ setActiveScreen, setBookingData, bookedGuides = [], onGui
                         <p style={{
                             color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: '600',
                             textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px',
-                        }}>✈️ VoyageAI</p>
-                        <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '900', margin: 0 }}>
+                        }}>VoyageAI</p>
+                        <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '900', margin: 0, lineHeight: 1.1 }}>
                             Local Guides
                         </h1>
                         <div style={{ display: 'flex', gap: '8px', marginTop: '5px' }}>
