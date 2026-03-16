@@ -391,7 +391,7 @@ const MeScreen = ({ setActiveScreen, language, setLanguage, currency = 'MYR', se
 
                 <SectionHeader title='About' />
                 <SettingsCard>
-                    <SettingsRow label='VoyageAI' value='Made With ❤️ by Kai Kai and Wei Wei' />
+                    <SettingsRow label='VoyageAI' value='Made by Kai Yuan and Lim Wei' />
                     <Divider />
                     <SettingsRow label='AI Powered by' value='Claude (Anthropic)' />
                     <Divider />
