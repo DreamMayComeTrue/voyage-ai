@@ -175,7 +175,7 @@ const PaymentScreen = ({ setActiveScreen, bookingData, onPaymentComplete, curren
                     passportNumber: form.passportNumber,
                     bookingRef,
                     paidAt: new Date().toISOString(),
-                    price,
+                    price : totalPrice,
                 })
             }, 1200)
         }, 2500)

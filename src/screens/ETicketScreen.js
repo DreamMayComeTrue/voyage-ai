@@ -107,12 +107,10 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
         ? formatDate(ticketData.paidAt)
         : formatDate(new Date().toISOString())
 
-    const rawPrice = isHotel
-        ? (hotel.price || 'MYR 380').split('/')[0].trim()
-        : (flight.price || 'MYR 580')
-    const totalPrice = rawPrice.replace('MYR ','')
-        ? `MYR ${(parseInt(rawPrice.replace('MYR ','').replace(/,/g,'')) + 55).toLocaleString()}`
-        : rawPrice
+    const totalPrice = ticketData?.price
+        || (isHotel
+            ? `MYR ${(parseInt((hotel.price || 'MYR 380').replace(/[^0-9]/g,'')) + 55).toLocaleString()}`
+            : `MYR ${(parseInt((flight.price || 'MYR 580').replace(/[^0-9]/g,'')) + 55).toLocaleString()}`)
 
     // Fixed seat for flight (stable, not re-randomising on re-render)
     const seatNum  = useMemo(() => `${Math.floor(Math.random()*30)+1}${['A','B','C','D','E','F'][Math.floor(Math.random()*6)]}`, [ref])
