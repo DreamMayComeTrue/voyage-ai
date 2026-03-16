@@ -112,46 +112,46 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
             ? `MYR ${(parseInt((hotel.price || 'MYR 380').replace(/[^0-9]/g,'')) + 55).toLocaleString()}`
             : `MYR ${(parseInt((flight.price || 'MYR 580').replace(/[^0-9]/g,'')) + 55).toLocaleString()}`)
 
-    // Generate seat numbers — logical per passenger, seat-together aware
+    // Check if already checked in — read from localStorage
+    const checkedInData = useMemo(() => {
+        try {
+            const all = JSON.parse(localStorage.getItem('voyageai_checkedin') || '{}')
+            return all[ref] || null
+        } catch { return null }
+    }, [ref])
+
+    const isCheckedIn = !!checkedInData
+
+    // Seat numbers — use checked-in seats if available, else generate from purchase
     const generateSeats = useMemo(() => {
-        const addons = ticketData?.addons
+        // If user already checked in, use those seats
+        if (checkedInData?.seats) {
+            const seats = checkedInData.seats
+            const paxCount = (ticketData?.extraPassengers?.length || 0) + 1
+            return Array.from({ length: paxCount }, (_, i) => seats[i] || seats[0])
+        }
+
+        // Otherwise generate from booking (same deterministic logic as CheckInScreen)
+        const addons   = ticketData?.addons
         const paxCount = (ticketData?.extraPassengers?.length || 0) + 1
         const seatPref = addons?.seat?.id || 'none'
-        const rowNum = Math.floor(Math.random() * 25) + 5 // rows 5-29
-        const cols = ['A','B','C','D','E','F']
+        const seed     = ref.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+        const rowNum   = (seed % 25) + 5  // deterministic row, same as CheckInScreen
+        const cols     = ['A','B','C','D','E','F']
 
         if (seatPref === 'together' || seatPref === 'none') {
-            // Adjacent seats: same row, consecutive columns
-            return Array.from({ length: paxCount }, (_, i) => {
-                const colIndex = Math.min(i, cols.length - 1)
-                return `${rowNum}${cols[colIndex]}`
-            })
+            return Array.from({ length: paxCount }, (_, i) => `${rowNum}${cols[Math.min(i, 5)]}`)
         } else if (seatPref === 'window') {
-            // All window seats: A or F
-            return Array.from({ length: paxCount }, (_, i) =>
-                `${rowNum + i}${i % 2 === 0 ? 'A' : 'F'}`
-            )
+            return Array.from({ length: paxCount }, (_, i) => `${rowNum + i}${i % 2 === 0 ? 'A' : 'F'}`)
         } else if (seatPref === 'aisle') {
-            // All aisle seats: C or D
-            return Array.from({ length: paxCount }, (_, i) =>
-                `${rowNum + i}${i % 2 === 0 ? 'C' : 'D'}`
-            )
+            return Array.from({ length: paxCount }, (_, i) => `${rowNum + i}${i % 2 === 0 ? 'C' : 'D'}`)
         } else if (seatPref === 'extra') {
-            // Exit row (row 12)
-            return Array.from({ length: paxCount }, (_, i) =>
-                `12${cols[i % cols.length]}`
-            )
+            return Array.from({ length: paxCount }, (_, i) => `12${cols[i % 6]}`)
         } else if (seatPref === 'front') {
-            // Rows 5-8
-            return Array.from({ length: paxCount }, (_, i) =>
-                `${5 + i}B`
-            )
+            return Array.from({ length: paxCount }, (_, i) => `${5 + i}B`)
         }
-        // Default: sequential seats
-        return Array.from({ length: paxCount }, (_, i) =>
-            `${rowNum}${cols[i % cols.length]}`
-        )
-    }, [ref])
+        return Array.from({ length: paxCount }, (_, i) => `${rowNum}${cols[i % 6]}`)
+    }, [ref, checkedInData])
 
     // Grid info differs for flight vs hotel
     const infoGrid = isHotel ? [
@@ -596,6 +596,40 @@ const ETicketScreen = ({ setActiveScreen, ticketData }) => {
                         <Share2 size={15} /> Share
                     </button>
                 </div>
+
+                {/* Check-in button — flights only */}
+                {!isHotel && (
+                    isCheckedIn ? (
+                        <div style={{
+                            width: '100%',
+                            background: '#f0fdf4',
+                            border: '1.5px solid #059669',
+                            borderRadius: '14px', padding: '14px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            marginBottom: '12px',
+                        }}>
+                            <CheckCircle size={16} color='#059669' />
+                            <span style={{ color: '#059669', fontSize: '15px', fontWeight: '700' }}>
+                                Online Check-in Complete
+                            </span>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setActiveScreen('checkin')}
+                            style={{
+                                width: '100%',
+                                background: 'linear-gradient(135deg, #059669, #0ea5e9)',
+                                border: 'none', borderRadius: '14px', padding: '14px',
+                                color: '#ffffff', fontSize: '15px', fontWeight: '700',
+                                cursor: 'pointer', boxShadow: '0 6px 20px #05966940',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                marginBottom: '12px',
+                            }}
+                        >
+                            ✅ Online Check-in & Select Seat
+                        </button>
+                    )
+                )}
 
                 <button
                     onClick={() => setActiveScreen('home')}

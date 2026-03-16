@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Plane, Hotel, Calendar, MapPin, ChevronRight, Search, Ticket, Clock, Star } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { Plane, Hotel, Calendar, MapPin, ChevronRight, Search, Ticket, Clock, Star, Check } from 'lucide-react'
 
 // ── Shared destination config (same as HomeScreen) ────────────────────────
 const DEST_CONFIG = {
@@ -65,6 +65,10 @@ const isUpcoming = (dateStr) => {
 const MyTripsScreen = ({ trips, setActiveScreen, setTicketData }) => {
     const [activeTab, setActiveTab] = useState('upcoming')
     const [search, setSearch]       = useState('')
+
+    const checkedInMap = useMemo(() => {
+        try { return JSON.parse(localStorage.getItem('voyageai_checkedin') || '{}') } catch { return {} }
+    }, [])
 
     const upcoming = trips.filter(t => isUpcoming(t.date))
     const past     = trips.filter(t => !isUpcoming(t.date))
@@ -157,17 +161,27 @@ const MyTripsScreen = ({ trips, setActiveScreen, setTicketData }) => {
                         </div>
                     </div>
 
-                    {/* Book Trip button top-right */}
-                    <button onClick={() => setActiveScreen('chat')} style={{
-                        position: 'absolute', top: '16px', right: '16px',
-                        background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)',
-                        border: '1.5px solid rgba(255,255,255,0.4)',
-                        borderRadius: '12px', padding: '8px 14px',
-                        color: '#ffffff', fontSize: '12px', fontWeight: '700',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
-                    }}>
-                        + Book Trip
-                    </button>
+                    {/* Buttons top-right */}
+                    <div style={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '8px' }}>
+                        <button onClick={() => setActiveScreen('import')} style={{
+                            background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                            border: '1.5px solid rgba(255,255,255,0.35)',
+                            borderRadius: '12px', padding: '8px 12px',
+                            color: '#ffffff', fontSize: '12px', fontWeight: '700',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                        }}>
+                            📥 Import
+                        </button>
+                        <button onClick={() => setActiveScreen('chat')} style={{
+                            background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)',
+                            border: '1.5px solid rgba(255,255,255,0.4)',
+                            borderRadius: '12px', padding: '8px 14px',
+                            color: '#ffffff', fontSize: '12px', fontWeight: '700',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                        }}>
+                            + Book Trip
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search + Tabs panel */}
@@ -265,7 +279,9 @@ const MyTripsScreen = ({ trips, setActiveScreen, setTicketData }) => {
                             key={trip.id || i}
                             trip={trip}
                             config={getConfig(trip)}
+                            isCheckedIn={!!(trip.bookingRef && checkedInMap[trip.bookingRef])}
                             onViewTicket={() => viewTicket(trip)}
+                            onCheckIn={() => { viewTicket(trip); setActiveScreen('checkin') }}
                         />
                     ))
                 )}
@@ -275,7 +291,7 @@ const MyTripsScreen = ({ trips, setActiveScreen, setTicketData }) => {
 }
 
 // ── Trip Card with image header ───────────────────────────────────────────
-const TripCard = ({ trip, config, onViewTicket }) => {
+const TripCard = ({ trip, config, onViewTicket, onCheckIn, isCheckedIn }) => {
     const isHotel  = trip.type === 'hotel'
     const flight   = trip.flight || {}
     const hotel    = trip.hotel  || {}
@@ -445,21 +461,50 @@ const TripCard = ({ trip, config, onViewTicket }) => {
                     </div>
                 )}
 
-                {/* View Ticket Button */}
-                <button onClick={onViewTicket} style={{
-                    width: '100%',
-                    background: upcoming ? 'linear-gradient(135deg, #1e6fd9, #4a9fe8)' : '#f0f6ff',
-                    border: upcoming ? 'none' : '1.5px solid #c0d8f0',
-                    borderRadius: '10px', padding: '11px',
-                    color: upcoming ? '#ffffff' : '#5a7a9f',
-                    fontSize: '13px', fontWeight: '700', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    boxShadow: upcoming ? '0 4px 12px #1e6fd930' : 'none',
-                }}>
-                    <Ticket size={14} />
-                    {isHotel ? 'View Hotel Voucher' : 'View E-Ticket'}
-                    <ChevronRight size={14} />
-                </button>
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={onViewTicket} style={{
+                        flex: 1,
+                        background: upcoming ? 'linear-gradient(135deg, #1e6fd9, #4a9fe8)' : '#f0f6ff',
+                        border: upcoming ? 'none' : '1.5px solid #c0d8f0',
+                        borderRadius: '10px', padding: '11px',
+                        color: upcoming ? '#ffffff' : '#5a7a9f',
+                        fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        boxShadow: upcoming ? '0 4px 12px #1e6fd930' : 'none',
+                    }}>
+                        <Ticket size={14} />
+                        {isHotel ? 'Voucher' : 'E-Ticket'}
+                        <ChevronRight size={14} />
+                    </button>
+
+                    {/* Check-in button — flights only, upcoming only */}
+                    {!isHotel && upcoming && (
+                        isCheckedIn ? (
+                            <div style={{
+                                flex: 1, background: '#f0fdf4',
+                                border: '1.5px solid #059669',
+                                borderRadius: '10px', padding: '11px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            }}>
+                                <Check size={14} color='#059669' />
+                                <span style={{ color: '#059669', fontSize: '13px', fontWeight: '700' }}>Checked In</span>
+                            </div>
+                        ) : (
+                            <button onClick={onCheckIn} style={{
+                                flex: 1,
+                                background: 'linear-gradient(135deg, #059669, #0ea5e9)',
+                                border: 'none', borderRadius: '10px', padding: '11px',
+                                color: '#ffffff', fontSize: '13px', fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                boxShadow: '0 4px 12px #05966930',
+                            }}>
+                                ✅ Check-in
+                            </button>
+                        )
+                    )}
+                </div>
             </div>
         </div>
     )

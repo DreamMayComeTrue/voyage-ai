@@ -8,6 +8,8 @@ import ExploreScreen from './screens/ExploreScreen'
 import GuideScreen from './screens/GuideScreen'
 import MeScreen from './screens/MeScreen'
 import ARMapScreen from './screens/ARMapScreen'
+import CheckInScreen from './screens/CheckInScreen'
+import ImportTicketScreen from './screens/ImportTicketScreen'
 import PaymentScreen from './screens/PaymentScreen'
 import AddOnsScreen from './screens/AddOnsScreen'
 import ETicketScreen from './screens/ETicketScreen'
@@ -73,6 +75,37 @@ function App() {
         const trip = buildTrip(data)
         setTrips(prev => [...prev, trip])
         return trip
+    }
+
+    // Check-in screen — no BottomNav
+    if (activeScreen === 'checkin') {
+        return (
+            <div className="app-container">
+                <div className="screen-content">
+                    <CheckInScreen
+                        setActiveScreen={setActiveScreen}
+                        ticketData={ticketData}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    // Import ticket screen — no BottomNav
+    if (activeScreen === 'import') {
+        return (
+            <div className="app-container">
+                <div className="screen-content">
+                    <ImportTicketScreen
+                        setActiveScreen={setActiveScreen}
+                        onImportComplete={(data) => {
+                            const trip = saveTrip(data)
+                            setTicketData({ ...data, ...trip })
+                        }}
+                    />
+                </div>
+            </div>
+        )
     }
 
     // Add-ons screen — flights only, no BottomNav
