@@ -19,20 +19,23 @@ Plan trips, book flights & hotels, translate languages, explore destinations —
 
 ## 📱 Overview
 
-VoyageAI is a full-featured AI travel assistant desktop app built as a hackathon project. It combines the power of **Claude AI** for intelligent travel planning with real-time **speech recognition**, **interactive maps**, **flight & hotel search**, and **language translation** — all packaged as a cross-platform desktop app.
+VoyageAI is a full-featured AI travel assistant desktop app built for the **4th China-ASEAN Innovation and Entrepreneurship Competition**. It combines the power of **Claude AI** for intelligent travel planning with real-time **speech recognition**, **interactive maps**, **flight & hotel search**, **online check-in**, **ticket import**, and **language translation** — all packaged as a cross-platform desktop app.
 
 ### ✨ Key Features
 
 | Feature | Description |
 |---|---|
 | 🤖 **AI Travel Agent** | Chat with Claude AI to plan trips, search flights & hotels, build itineraries |
-| ✈️ **Flight & Hotel Search** | Real-time search via Aviationstack API with mock fallback |
+| ✈️ **Flight Search & Add-ons** | Real-time flights with meal, baggage, seat & extras selection per passenger |
+| 🏨 **Hotel Booking** | Search and book hotels with full payment flow |
 | 🗺️ **Interactive AR Maps** | Leaflet-powered world map with trip pins, itinerary drilldown, day-coloured route pins |
 | 📋 **Smart Itinerary Planner** | AI generates day-by-day plans with colour-coded sections |
 | 🌐 **Real-time Translator** | Translate between 15 languages with voice input and TTS output |
 | 🧑‍🦯 **Local Guides** | Browse and book local expert guides with reviews and ratings |
 | 🔍 **Explore Destinations** | Trending destinations, outfit suggestions, nearby restaurants |
-| 💳 **Full Payment Flow** | Complete booking experience with saved cards, passengers & e-tickets |
+| 💳 **Full Payment Flow** | Multi-passenger checkout with saved cards, passengers & e-tickets |
+| 🪑 **Online Check-in** | Interactive seat map with keep/change seat choice, per-passenger boarding passes |
+| 📥 **Import Ticket** | Upload any flight/hotel PDF or image — Claude AI extracts and imports it |
 | 👤 **User Profiles** | Language, currency, travel style, interests — all personalised |
 | 🎙️ **Voice Input** | Groq Whisper speech-to-text across Chat and Translate screens |
 
@@ -40,17 +43,22 @@ VoyageAI is a full-featured AI travel assistant desktop app built as a hackathon
 
 ## 🖥️ Screenshots
 
-![Home Screen](screenshots/screenshot-home.png)
-![Reminder Screen](screenshots/screenshot-home-reminder.png)
-![Chat Screen](screenshots/screenshot-agent-1.png)
-![Chat Screen](screenshots/screenshot-agent-2.png)
-![AR Map Screen](screenshots/screenshot-armap.png)
-![AR Map Screen](screenshots/screenshot-armap-itinerary.png)
-![Explore Screen](screenshots/screenshot-explore.png)
-![Translate Screen](screenshots/screenshot-translate.png)
+<div align="center">
+  <img src="screenshots/screenshot-home.png" width="230" />
+  <img src="screenshots/screenshot-home-reminder.png" width="230" />
+  <img src="screenshots/screenshot-agent-1.png" width="230" />
+</div>
 
+<div align="center">
+  <img src="screenshots/screenshot-agent-2.png" width="230" />
+  <img src="screenshots/screenshot-armap.png" width="230" />
+  <img src="screenshots/screenshot-armap-itinerary.png" width="230" />
+</div>
 
-
+<div align="center">
+  <img src="screenshots/screenshot-explore.png" width="230" />
+  <img src="screenshots/screenshot-translate.png" width="230" />
+</div>
 
 ---
 
@@ -65,7 +73,7 @@ VoyageAI is a full-featured AI travel assistant desktop app built as a hackathon
 ### AI & APIs
 | Service | Usage | Cost |
 |---|---|---|
-| **Anthropic Claude** (`claude-sonnet-4-20250514`) | AI chat, itinerary generation, translation, language detection | Pay per token |
+| **Anthropic Claude** (`claude-sonnet-4-20250514`) | AI chat, itinerary generation, translation, ticket reading | Pay per token |
 | **Groq Whisper** (`whisper-large-v3-turbo`) | Speech-to-text transcription | Free tier available |
 | **Aviationstack** | Live flight data | Free tier (100 req/month) |
 | **OpenWeather** | Weather data | Free tier |
@@ -265,7 +273,7 @@ Or drag and drop the `build/` folder at [app.netlify.com](https://app.netlify.co
 ```
 voyageai/
 ├── public/
-│   ├── electron.js          # Electron main process
+│   ├── electron.js              # Electron main process
 │   ├── index.html
 │   └── logo192.png
 ├── src/
@@ -273,14 +281,17 @@ voyageai/
 │   │   ├── HomeScreen.js        # Dashboard with quick actions & upcoming trips
 │   │   ├── ChatScreen.js        # AI chat with flights/hotels/itinerary cards
 │   │   ├── ExploreScreen.js     # Destinations, outfit guide, restaurants
-│   │   ├── MyTripsScreen.js     # Bookings with destination photos
+│   │   ├── MyTripsScreen.js     # Bookings with destination photos & check-in
 │   │   ├── ItineraryScreen.js   # Day-by-day itinerary viewer
 │   │   ├── TranslateScreen.js   # Real-time translation + voice
 │   │   ├── GuideScreen.js       # Local guide marketplace
 │   │   ├── ARMapScreen.js       # Interactive Leaflet map
 │   │   ├── MeScreen.js          # Profile & settings
-│   │   ├── PaymentScreen.js     # Booking checkout
-│   │   └── ETicketScreen.js     # Booking confirmation & QR ticket
+│   │   ├── AddOnsScreen.js      # Flight add-ons (meal, baggage, seat, extras)
+│   │   ├── PaymentScreen.js     # Multi-passenger checkout
+│   │   ├── ETicketScreen.js     # Booking confirmation & QR ticket
+│   │   ├── CheckInScreen.js     # Online check-in with interactive seat map
+│   │   └── ImportTicketScreen.js# AI-powered ticket import from PDF/image
 │   ├── components/
 │   │   ├── BottomNav.js         # Tab navigation
 │   │   ├── FloatingAIButton.js  # Chat shortcut button
@@ -290,7 +301,7 @@ voyageai/
 │   │   └── ItineraryPreviewCard.js
 │   ├── services/
 │   │   ├── claudeService.js     # Claude AI + Groq Whisper integration
-│   │   └── flightService.js     # Aviationstack + mock flight data
+│   │   └── flightService.js     # Aviationstack + real-time aware mock data
 │   ├── App.js                   # Root component + global state
 │   └── App.css
 ├── .env                         # API keys (never commit this)
@@ -312,12 +323,46 @@ The AI agent (powered by Claude) can:
 - Give weather, visa, packing advice
 
 ### Itinerary Parser
-The app includes a custom parser (`parseItineraryText`) that converts Claude's free-text itinerary responses into structured day/place/time data used by:
-- ItineraryScreen (day tabs, section colours)
-- ARMapScreen (numbered pins on map)
+The app includes a custom parser (`parseItineraryText`) that converts Claude's free-text itinerary responses into structured day/place/time data used by ItineraryScreen (day tabs, section colours) and ARMapScreen (numbered pins on map).
 
 ### Speech Recognition
 Uses **Groq Whisper** (`whisper-large-v3-turbo`) via HTTP fetch — same approach in both ChatScreen and TranslateScreen. Supports 99 languages automatically detected.
+
+### Ticket Import (AI Vision)
+The ImportTicketScreen sends uploaded PDFs and images directly to the Claude API using vision/document capabilities. Claude extracts structured booking data (airline, flight number, route, seat, passenger name, booking ref) and the app renders it as a native e-ticket — no manual entry needed.
+
+---
+
+## ✈️ Flight Booking Flow
+
+The complete flight booking journey:
+
+```
+AI Chat → Select Flight → Add-ons → Payment → E-Ticket → Check-in
+```
+
+### Add-ons Screen
+After selecting a flight, passengers can customise:
+- **🍱 Meal** — Standard, Halal (free), Vegetarian, Vegan, Seafood, Kids, Diabetic and more
+- **🧳 Baggage** — Cabin only (free), 20 kg, 25 kg, 30 kg, or 40 kg checked baggage
+- **🪑 Seat** — Window, Aisle, Sit Together, Extra Legroom, Front of Cabin
+- **⚡ Extras** — Priority Boarding, Airport Lounge, In-flight Wi-Fi, Comfort Kit, Travel Insurance
+- All add-ons priced per passenger and multiplied by passenger count
+- Selections persist through back navigation via `sessionStorage`
+
+### Multi-Passenger Support
+- Set passenger count (1–9) on the Add-ons screen
+- Payment screen shows a separate form for each additional passenger (name + passport)
+- Saved passenger profiles auto-fill from favourites
+- E-ticket shows individual boarding sections per passenger with unique seat numbers
+- Seat-together preference assigns adjacent seats in the same row automatically
+
+### Online Check-in
+Accessible from My Trips or the E-Ticket screen:
+1. **Choice step** — shows purchased seats with option to keep or change
+2. **Seat map** — full 30-row × 6-column cabin with colour-coded seat types (window=blue, aisle=purple, exit row=amber, front=sky blue)
+3. **Confirmation** — per-passenger boarding pass card with final confirmed seat
+4. Check-in status saved to `localStorage` — button becomes "✅ Checked In" on both My Trips and E-Ticket screens and cannot be repeated
 
 ---
 
@@ -330,7 +375,19 @@ The AR Maps screen uses **Leaflet.js** with OpenStreetMap tiles:
 - **Explore** — shows 10 popular destinations as discovery pins
 - **3 map styles** — Street, Satellite (ArcGIS), Dark (CartoDB)
 
-The itinerary drilldown shows numbered pins (1, 2, 3...) colour-coded by day, connected by route lines. 80+ tourist landmarks are pre-geocoded. Unknown places are silently skipped — numbers remain consecutive.
+The itinerary drilldown shows numbered pins (1, 2, 3...) colour-coded by day, connected by route lines. 80+ tourist landmarks are pre-geocoded. Unknown places are silently skipped — numbers remain consecutive with no gaps.
+
+---
+
+## 📥 Import Ticket
+
+Upload any existing booking confirmation:
+- Supports **PDF**, **JPG**, **PNG**, **WebP**
+- Drag & drop or tap to upload
+- Claude AI reads the document and extracts: airline, flight number, route, dates, passenger, seat, booking ref, gate, terminal
+- Preview extracted data before importing
+- Works for both **flight** and **hotel** bookings
+- Imported tickets appear in My Trips alongside booked ones
 
 ---
 
@@ -342,12 +399,20 @@ All user data is stored in **localStorage** (no backend required):
 |---|---|
 | `voyageai_conversations` | Chat history |
 | `voyageai_fav_passengers` | Saved passenger profiles |
-| `voyageai_fav_cards` | Saved payment cards (no CVV) |
+| `voyageai_fav_cards` | Saved payment cards (no CVV stored) |
+| `voyageai_checkedin` | Check-in status & confirmed seats per booking ref |
 | `voyageai_reviews_[id]` | Guide reviews per guide |
 | `voyageai_name` / `voyageai_email` | Profile info |
 | `voyageai_currency` | Selected currency |
 | `voyageai_interests` | Travel interest tags |
 | `voyageai_style` | Travel style preference |
+
+Session data (cleared automatically after payment):
+
+| Key | Data |
+|---|---|
+| `voyageai_addons_state` | Add-ons selections (survives back navigation) |
+| `voyageai_payment_form` | Payment form data (survives back navigation) |
 
 ---
 
@@ -361,7 +426,7 @@ English · 中文 · Bahasa Melayu · 日本語 · 한국어 · ภาษาไ�
 
 MYR · USD · SGD · JPY · EUR · GBP · AUD
 
-Currency selection in Me Screen propagates to flight/hotel prices and payment totals.
+Currency selection in Me Screen propagates to flight/hotel prices, add-on totals, and payment summaries.
 
 ---
 
@@ -371,16 +436,19 @@ Currency selection in Me Screen propagates to flight/hotel prices and payment to
 - Payment card CVV is never saved to localStorage
 - Card numbers are masked for display (`**** **** **** 4242`)
 - This is a demo app — no real payments are processed
+- Claude API key is used browser-side; for production, proxy through a backend
 
 ---
 
 ## 🐛 Known Limitations
 
-- Flight data uses mock fallback when Aviationstack free tier is exhausted
+- Flight data uses mock fallback when Aviationstack free tier is exhausted (100 req/month)
+- Mock flights only show departures 3+ hours from current time for today's date
 - AR Maps requires internet connection for map tiles
-- AR Maps place geocoding covers 80+ popular landmarks — unknown places are omitted from map pins
+- AR Maps place geocoding covers 80+ popular landmarks — unknown places are omitted
 - App Language is English only (multilingual UI coming soon)
-- TTS (text-to-speech) uses browser `speechSynthesis` — voice quality depends on OS installed voices
+- TTS uses browser `speechSynthesis` — voice quality depends on OS installed voices
+- Dark Mode coming soon
 
 ---
 
@@ -401,7 +469,6 @@ Edit `PLACE_COORDS` in `src/screens/ARMapScreen.js`:
 
 ```js
 const PLACE_COORDS = {
-    // Add your landmark:
     'your landmark name': { lat: 3.1579, lng: 101.7116 },
 }
 ```
@@ -409,6 +476,10 @@ const PLACE_COORDS = {
 ### Adding New Guide Profiles
 
 Edit the `GUIDES` array in `src/screens/GuideScreen.js` — each guide needs: `name`, `specialty`, `photo` (Unsplash URL), `languages`, `city`, `country`, `flag`, `rating`, `reviews`, `price`, `tags`, `about`, `mockReviews`.
+
+### Adding New Flight Add-ons
+
+Edit the `MEALS`, `BAGGAGE`, `SEATS`, or `EXTRAS` arrays at the top of `src/screens/AddOnsScreen.js`. Each item needs: `id`, `label`, `desc`, `price`, `emoji` (and `tag` for meals).
 
 ---
 
@@ -422,11 +493,7 @@ Edit the `GUIDES` array in `src/screens/GuideScreen.js` — each guide needs: `n
 
 ---
 
-## 📄 Licence
 
-This project is licensed under the MIT Licence — see the [LICENSE](LICENSE) file for details.
-
----
 
 ## 🙏 Acknowledgements
 
@@ -442,7 +509,7 @@ This project is licensed under the MIT Licence — see the [LICENSE](LICENSE) fi
 
 <div align="center">
 
-**Built With Spirit For 4th China-ASEAN Innovation and Entrepreneurship Competition **
+**Built With Spirit For the 4th China-ASEAN Innovation and Entrepreneurship Competition**
 
 *VoyageAI — Where every journey begins with a conversation.*
 
