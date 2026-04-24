@@ -19,7 +19,7 @@ Plan trips, book flights & hotels, translate languages, explore destinations —
 
 ## 📱 Overview
 
-VoyageAI is a full-featured AI travel assistant desktop app built for the **4th China-ASEAN Innovation and Entrepreneurship Competition**. It combines the power of **Claude AI** for intelligent travel planning with real-time **speech recognition**, **interactive maps**, **flight & hotel search**, **online check-in**, **ticket import**, and **language translation** — all packaged as a cross-platform desktop app.
+VoyageAI is a full-featured AI travel assistant desktop app built for the **4th China-ASEAN Innovation and Entrepreneurship Competition**. It combines the power of **Claude AI** for intelligent travel planning with real-time **speech recognition**, **interactive maps**, **flight & hotel search**, **online check-in**, **ticket import**, and **language translation** all packaged as a cross-platform desktop app.
 
 ### ✨ Key Features
 
@@ -35,8 +35,8 @@ VoyageAI is a full-featured AI travel assistant desktop app built for the **4th 
 | 🔍 **Explore Destinations** | Trending destinations, outfit suggestions, nearby restaurants |
 | 💳 **Full Payment Flow** | Multi-passenger checkout with saved cards, passengers & e-tickets |
 | 🪑 **Online Check-in** | Interactive seat map with keep/change seat choice, per-passenger boarding passes |
-| 📥 **Import Ticket** | Upload any flight/hotel PDF or image — Claude AI extracts and imports it |
-| 👤 **User Profiles** | Language, currency, travel style, interests — all personalised |
+| 📥 **Import Ticket** | Upload any flight/hotel PDF or image : Claude AI extracts and imports it |
+| 👤 **User Profiles** | Language, currency, travel style, interests : All personalised |
 | 🎙️ **Voice Input** | Groq Whisper speech-to-text across Chat and Translate screens |
 
 ---
@@ -236,7 +236,7 @@ npx cap open ios
 
 ### 🌐 Web App (Vercel / Netlify)
 
-Deploy as a web app — note Electron-specific features (mic permissions, local file access) will behave differently in browsers.
+Deploy as a web app, note Electron-specific features (mic permissions, local file access) will behave differently in browsers.
 
 #### Vercel (recommended)
 
@@ -329,7 +329,7 @@ The app includes a custom parser (`parseItineraryText`) that converts Claude's f
 Uses **Groq Whisper** (`whisper-large-v3-turbo`) via HTTP fetch — same approach in both ChatScreen and TranslateScreen. Supports 99 languages automatically detected.
 
 ### Ticket Import (AI Vision)
-The ImportTicketScreen sends uploaded PDFs and images directly to the Claude API using vision/document capabilities. Claude extracts structured booking data (airline, flight number, route, seat, passenger name, booking ref) and the app renders it as a native e-ticket — no manual entry needed.
+The ImportTicketScreen sends uploaded PDFs and images directly to the Claude API using vision/document capabilities. Claude extracts structured booking data (airline, flight number, route, seat, passenger name, booking ref) and the app renders it as a native e-ticket, no manual entry needed.
 
 ---
 
@@ -375,7 +375,7 @@ The AR Maps screen uses **Leaflet.js** with OpenStreetMap tiles:
 - **Explore** — shows 10 popular destinations as discovery pins
 - **3 map styles** — Street, Satellite (ArcGIS), Dark (CartoDB)
 
-The itinerary drilldown shows numbered pins (1, 2, 3...) colour-coded by day, connected by route lines. 80+ tourist landmarks are pre-geocoded. Unknown places are silently skipped — numbers remain consecutive with no gaps.
+The itinerary drilldown shows numbered pins (1, 2, 3...) colour-coded by day, connected by route lines. 80+ tourist landmarks are pre-geocoded. Unknown places are silently skipped, numbers remain consecutive with no gaps.
 
 ---
 
