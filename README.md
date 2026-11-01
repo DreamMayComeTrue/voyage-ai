@@ -1,11 +1,11 @@
-# ✈️ VoyageAI — AI-Powered Travel Assistant
+# ✈️ VoyageAI - AI-Powered Travel Assistant
 
 <div align="center">
 
 ![VoyageAI Banner](https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80)
 
 **An intelligent travel companion built with React, Electron, and Claude AI.**  
-Plan trips, book flights & hotels, translate languages, explore destinations — all in one app.
+Plan trips, book flights & hotels, translate languages, explore destinations all in one app.
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)](https://reactjs.org/)
 [![Electron](https://img.shields.io/badge/Electron-Desktop-47848F?style=flat&logo=electron)](https://electronjs.org/)
@@ -65,10 +65,10 @@ VoyageAI is a full-featured AI travel assistant desktop app built for the **4th 
 ## 🏗️ Tech Stack
 
 ### Frontend
-- **React 18** — UI framework
-- **Electron** — Cross-platform desktop wrapper
-- **Lucide React** — Icon library
-- **Leaflet.js** — Interactive maps (loaded via CDN)
+- **React 18** - UI framework
+- **Electron** - Cross-platform desktop wrapper
+- **Lucide React** - Icon library
+- **Leaflet.js** - Interactive maps (loaded via CDN)
 
 ### AI & APIs
 | Service | Usage | Cost |
@@ -343,15 +343,15 @@ AI Chat → Select Flight → Add-ons → Payment → E-Ticket → Check-in
 
 ### Add-ons Screen
 After selecting a flight, passengers can customise:
-- **🍱 Meal** — Standard, Halal (free), Vegetarian, Vegan, Seafood, Kids, Diabetic and more
-- **🧳 Baggage** — Cabin only (free), 20 kg, 25 kg, 30 kg, or 40 kg checked baggage
-- **🪑 Seat** — Window, Aisle, Sit Together, Extra Legroom, Front of Cabin
-- **⚡ Extras** — Priority Boarding, Airport Lounge, In-flight Wi-Fi, Comfort Kit, Travel Insurance
+- **🍱 Meal** - Standard, Halal (free), Vegetarian, Vegan, Seafood, Kids, Diabetic and more
+- **🧳 Baggage** - Cabin only (free), 20 kg, 25 kg, 30 kg, or 40 kg checked baggage
+- **🪑 Seat** - Window, Aisle, Sit Together, Extra Legroom, Front of Cabin
+- **⚡ Extras** - Priority Boarding, Airport Lounge, In-flight Wi-Fi, Comfort Kit, Travel Insurance
 - All add-ons priced per passenger and multiplied by passenger count
 - Selections persist through back navigation via `sessionStorage`
 
 ### Multi-Passenger Support
-- Set passenger count (1–9) on the Add-ons screen
+- Set passenger count (1-9) on the Add-ons screen
 - Payment screen shows a separate form for each additional passenger (name + passport)
 - Saved passenger profiles auto-fill from favourites
 - E-ticket shows individual boarding sections per passenger with unique seat numbers
@@ -359,10 +359,10 @@ After selecting a flight, passengers can customise:
 
 ### Online Check-in
 Accessible from My Trips or the E-Ticket screen:
-1. **Choice step** — shows purchased seats with option to keep or change
-2. **Seat map** — full 30-row × 6-column cabin with colour-coded seat types (window=blue, aisle=purple, exit row=amber, front=sky blue)
-3. **Confirmation** — per-passenger boarding pass card with final confirmed seat
-4. Check-in status saved to `localStorage` — button becomes "✅ Checked In" on both My Trips and E-Ticket screens and cannot be repeated
+1. **Choice step** - shows purchased seats with option to keep or change
+2. **Seat map** - full 30-row × 6-column cabin with colour-coded seat types (window=blue, aisle=purple, exit row=amber, front=sky blue)
+3. **Confirmation** - per-passenger boarding pass card with final confirmed seat
+4. Check-in status saved to `localStorage` - button becomes "✅ Checked In" on both My Trips and E-Ticket screens and cannot be repeated
 
 ---
 
@@ -370,10 +370,10 @@ Accessible from My Trips or the E-Ticket screen:
 
 The AR Maps screen uses **Leaflet.js** with OpenStreetMap tiles:
 
-- **My Trips** — pins your booked destinations with flight lines from KUL
-- **Itineraries** — tap any destination pin to drill into day-by-day route
-- **Explore** — shows 10 popular destinations as discovery pins
-- **3 map styles** — Street, Satellite (ArcGIS), Dark (CartoDB)
+- **My Trips** - pins your booked destinations with flight lines from KUL
+- **Itineraries** - tap any destination pin to drill into day-by-day route
+- **Explore** - shows 10 popular destinations as discovery pins
+- **3 map styles** - Street, Satellite (ArcGIS), Dark (CartoDB)
 
 The itinerary drilldown shows numbered pins (1, 2, 3...) colour-coded by day, connected by route lines. 80+ tourist landmarks are pre-geocoded. Unknown places are silently skipped, numbers remain consecutive with no gaps.
 
@@ -432,10 +432,10 @@ Currency selection in Me Screen propagates to flight/hotel prices, add-on totals
 
 ## 🔒 Security Notes
 
-- **Never commit your `.env` file** — it's in `.gitignore`
+- **Never commit your `.env` file** - it's in `.gitignore`
 - Payment card CVV is never saved to localStorage
 - Card numbers are masked for display (`**** **** **** 4242`)
-- This is a demo app — no real payments are processed
+- This is a demo app - no real payments are processed
 - Claude API key is used browser-side; for production, proxy through a backend
 
 ---
@@ -445,9 +445,9 @@ Currency selection in Me Screen propagates to flight/hotel prices, add-on totals
 - Flight data uses mock fallback when Aviationstack free tier is exhausted (100 req/month)
 - Mock flights only show departures 3+ hours from current time for today's date
 - AR Maps requires internet connection for map tiles
-- AR Maps place geocoding covers 80+ popular landmarks — unknown places are omitted
+- AR Maps place geocoding covers 80+ popular landmarks - unknown places are omitted
 - App Language is English only (multilingual UI coming soon)
-- TTS uses browser `speechSynthesis` — voice quality depends on OS installed voices
+- TTS uses browser `speechSynthesis` - voice quality depends on OS installed voices
 - Dark Mode coming soon
 
 ---
@@ -475,7 +475,7 @@ const PLACE_COORDS = {
 
 ### Adding New Guide Profiles
 
-Edit the `GUIDES` array in `src/screens/GuideScreen.js` — each guide needs: `name`, `specialty`, `photo` (Unsplash URL), `languages`, `city`, `country`, `flag`, `rating`, `reviews`, `price`, `tags`, `about`, `mockReviews`.
+Edit the `GUIDES` array in `src/screens/GuideScreen.js` - each guide needs: `name`, `specialty`, `photo` (Unsplash URL), `languages`, `city`, `country`, `flag`, `rating`, `reviews`, `price`, `tags`, `about`, `mockReviews`.
 
 ### Adding New Flight Add-ons
 
@@ -497,13 +497,13 @@ Edit the `MEALS`, `BAGGAGE`, `SEATS`, or `EXTRAS` arrays at the top of `src/scre
 
 ## 🙏 Acknowledgements
 
-- [Anthropic](https://anthropic.com/) — Claude AI API
-- [Groq](https://groq.com/) — Ultra-fast Whisper speech-to-text
-- [Aviationstack](https://aviationstack.com/) — Flight data API
-- [Leaflet.js](https://leafletjs.com/) — Interactive maps
-- [OpenStreetMap](https://openstreetmap.org/) — Map tiles
-- [Unsplash](https://unsplash.com/) — Destination photography
-- [Lucide](https://lucide.dev/) — Icon library
+- [Anthropic](https://anthropic.com/) - Claude AI API
+- [Groq](https://groq.com/) - Ultra-fast Whisper speech-to-text
+- [Aviationstack](https://aviationstack.com/) - Flight data API
+- [Leaflet.js](https://leafletjs.com/) - Interactive maps
+- [OpenStreetMap](https://openstreetmap.org/) - Map tiles
+- [Unsplash](https://unsplash.com/) - Destination photography
+- [Lucide](https://lucide.dev/) - Icon library
 
 ---
 
@@ -511,6 +511,6 @@ Edit the `MEALS`, `BAGGAGE`, `SEATS`, or `EXTRAS` arrays at the top of `src/scre
 
 **Built With Spirit For the 4th China-ASEAN Innovation and Entrepreneurship Competition**
 
-*VoyageAI — Where every journey begins with a conversation.*
+*VoyageAI - Where every journey begins with a conversation.*
 
 </div>
